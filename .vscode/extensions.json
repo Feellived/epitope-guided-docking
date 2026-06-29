@@ -1,0 +1,9 @@
+{
+  "// 설명": "이 프로젝트를 VSCode로 열면 아래 확장 설치를 추천받습니다(우하단 알림).",
+  "recommendations": [
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "ms-toolsai.jupyter",
+    "ms-vscode-remote.remote-ssh"
+  ]
+}

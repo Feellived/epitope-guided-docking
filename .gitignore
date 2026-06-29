@@ -26,8 +26,12 @@ env/
 # --- Jupyter / Colab ---
 .ipynb_checkpoints/
 
+# --- VSCode: 공유할 설정만 추적, 나머지는 무시 ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
 # --- OS / 에디터 ---
 .DS_Store
 .idea/
-.vscode/
 *.swp

@@ -1,0 +1,10 @@
+# BK21 항체 ML — 분석 스크립트 의존성
+# 설치: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+
+numpy
+pandas
+
+# 구조 파일(.cif/.pdb) 처리 — af3_convert.py / cif_distance.py / alanine_scan_prep.py
+gemmi
+# gemmi 미설치 환경의 fallback 용
+biopython
