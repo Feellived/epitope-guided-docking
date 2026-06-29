@@ -1,0 +1,33 @@
+# --- 연구실 미공개 데이터/문서 (절대 커밋 금지) ---
+data/
+*.docx
+*.pdf
+*.pptx
+*.xlsx
+*.h5
+*.hdf5
+*.parquet
+*.csv
+*.cif
+*.pdb
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# --- Jupyter / Colab ---
+.ipynb_checkpoints/
+
+# --- OS / 에디터 ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
