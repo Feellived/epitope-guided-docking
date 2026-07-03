@@ -35,3 +35,5 @@ env/
 .DS_Store
 .idea/
 *.swp
+consensus_docking/runs/
+consensus_docking/results/.notion_synced.txt
