@@ -51,9 +51,11 @@ def yaml_chain_order(path):
     return order
 
 
-def parse_dockq(model_cif, native_pdb):
-    r = subprocess.run(["DockQ", model_cif, native_pdb],
-                       capture_output=True, text=True)
+def parse_dockq(model_cif, native_pdb, mapping=None):
+    cmd = ["DockQ", model_cif, native_pdb]
+    if mapping:                       # 예측 사슬 -> native 같은 사슬 고정 (다중카피 대비)
+        cmd += ["--mapping", mapping]
+    r = subprocess.run(cmd, capture_output=True, text=True)
     out = r.stdout
     inter, cur = {}, None
     for line in out.splitlines():
@@ -123,7 +125,8 @@ def main():
         sys.exit(f"[에러] 파일 못 찾음: {miss} (run-dir={rd})")
 
     order = yaml_chain_order(yml)
-    inter, dockq_out = parse_dockq(cif, native)
+    _m = "".join(order)
+    inter, dockq_out = parse_dockq(cif, native, mapping=f"{_m}:{_m}")
     giptm, pair, pair_vals = parse_conf(conf, order, antigen, antibody)
 
     abag = {ab: inter.get(frozenset([antigen, ab])) for ab in antibody}
