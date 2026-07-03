@@ -51,12 +51,7 @@ def yaml_chain_order(path):
     return order
 
 
-def parse_dockq(model_cif, native_pdb, mapping=None):
-    cmd = ["DockQ", model_cif, native_pdb]
-    if mapping:                       # 예측 사슬 -> native 같은 사슬 고정 (다중카피 대비)
-        cmd += ["--mapping", mapping]
-    r = subprocess.run(cmd, capture_output=True, text=True)
-    out = r.stdout
+def _interfaces(out):
     inter, cur = {}, None
     for line in out.splitlines():
         m = re.search(r"Native chains:\s*([A-Za-z0-9]),\s*([A-Za-z0-9])", line)
@@ -67,6 +62,22 @@ def parse_dockq(model_cif, native_pdb, mapping=None):
         if m and cur is not None:
             inter[cur] = float(m.group(1))
             cur = None
+    return inter
+
+
+def parse_dockq(model_cif, native_pdb, mapping=None):
+    def run(mp):
+        cmd = ["DockQ", model_cif, native_pdb]
+        if mp:
+            cmd += ["--mapping", mp]
+        return subprocess.run(cmd, capture_output=True, text=True).stdout
+    out = run(mapping)                       # 예측 사슬 -> native 같은 사슬 고정 (단일카피·cognate 다중카피)
+    inter = _interfaces(out)
+    if not inter and mapping:                # 강제매핑이 native 계면 못 찾음(다중카피 비-cognate) -> auto 재시도
+        out2 = run(None)
+        i2 = _interfaces(out2)
+        if i2:
+            return i2, out2
     return inter, out
 
 
@@ -131,6 +142,11 @@ def main():
 
     abag = {ab: inter.get(frozenset([antigen, ab])) for ab in antibody}
     have = [v for v in abag.values() if v is not None]
+    if not have and len(antibody) == 1 and len(inter) == 1:
+        # 나노바디 + 다중카피: auto-map이 다른 카피 사슬로 맵핑 -> 유일 계면이 곧 Ab-Ag
+        only = next(iter(inter.values()))
+        abag = {antibody[0]: only}
+        have = [only]
     if not have:
         sys.exit(f"[에러] Ab-Ag interface DockQ 파싱 실패. antigen={antigen} antibody={antibody}\n"
                  f"DockQ가 본 interface: {[tuple(k) for k in inter]}\n--- DockQ 원문 ---\n{dockq_out}")
