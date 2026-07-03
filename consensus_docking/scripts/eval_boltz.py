@@ -112,7 +112,9 @@ def main():
     if not antigen or not antibody:
         sys.exit("[에러] antigen/antibody 사슬 미상 -> --antigen A --antibody H,L 로 지정")
 
-    native = find_one([f"{rd}/{tid}.pdb", f"{rd}/{tid.upper()}.pdb", f"{rd}/{tid.lower()}.pdb"])
+    native = find_one([f"{rd}/{tid}.pdb", f"{rd}/{tid}.cif",
+                       f"{rd}/{tid.upper()}.pdb", f"{rd}/{tid.upper()}.cif",
+                       f"{rd}/{tid.lower()}.pdb", f"{rd}/{tid.lower()}.cif"])
     yml = find_one([f"{rd}/boltz_{tid.lower()}.yaml", f"{rd}/boltz_*.yaml"])
     cif = find_one([f"{rd}/results_boltz/**/*_model_{a.seed}.cif"])
     conf = find_one([f"{rd}/results_boltz/**/confidence_*_model_{a.seed}.json"])
