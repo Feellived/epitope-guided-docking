@@ -5,14 +5,25 @@ core 3 = Boltz-2 · Chai-1 · Protenix-v2. **각 모델은 별도 conda env.**
 
 벤치 5개 = 10zo 9y0a 9obn 9k6j 9xf9  (9vp0 = dev/preliminary).
 
-## ① 프렙 (한 번, dock env에서)
+## ① 추출 + 입력생성 (계층 분리)
+
+**Layer 1 — 사슬 추출 (한 번, 모델 무관):**
 ```bash
 conda activate dock
 cd ~/projects/bk21-antibody-ml/consensus_docking
 pip install biopython pyyaml        # 없으면
-python scripts/prep_all.py --targets scripts/targets.yaml --out-dir runs
+python scripts/extract_chains.py --targets scripts/targets.yaml --out-dir runs \
+    --only 10ZO,9Y0A,9OBN,9K6J,9XF9
 ```
--> runs/<id>/ 마다: <ID>.pdb, boltz_<id>.yaml, chai_<id>.fasta, protenix_<id>.json, chains.json
+-> runs/<id>/{<ID>.pdb, **chains.json**(서열·역할 단일 기록), <id>.fasta}
+
+**Layer 2 — 모델 입력 생성 (그 모델 쓸 때만, 독립):**
+```bash
+python scripts/make_boltz.py    --run-dir runs   # Boltz 쓸 때
+python scripts/make_chai.py     --run-dir runs   # Chai 쓸 때
+python scripts/make_protenix.py --run-dir runs   # Protenix 쓸 때
+```
+-> 각 runs/<id>/에 boltz_<id>.yaml / chai_<id>.fasta / protenix_<id>.json 만 생성
 
 ## ② + ③ 모델별 실행 (각 별도 env; 설치 전 사용자 허가)
 
