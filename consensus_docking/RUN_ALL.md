@@ -53,13 +53,14 @@ conda create -n protenix python=3.11 -y && conda activate protenix
 pip install protenix
 export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights   # weight 큰 디스크
 export LAYERNORM_TYPE=torch                                   # CUDA 커널(LayerNorm) 컴파일 회피 = gcc 불필요
+# ⚠️ protenix-v2 weight는 서버에서 403(비공개) → base(2025-06 컷오프; 우리 2026세트엔 여전히 clean)로 대체
 for t in 10zo 9y0a 9obn 9k6j 9xf9; do
   ( cd runs/$t && rm -rf out_protenix && protenix pred -i protenix_$t.json -o out_protenix \
-      -n protenix-v2 -s 101 -e 5 --trimul_kernel torch --triatt_kernel torch \
-      --msa_server_mode colabfold > protenix.log 2>&1 )
+      -n protenix_base_20250630_v1.0.0 -s 101 -e 5 --trimul_kernel torch --triatt_kernel torch \
+      > protenix.log 2>&1 )
   echo "=== done $t ==="
 done
-# 서브커맨드 = `protenix pred`(predict 아님). -e 5=pose 5개, 모든 커널 torch로(컴파일 X). eval은 boltz env.
+# `protenix pred`(predict 아님). MSA는 기본(protenix 모드; colabfold 모드는 a3m 에러남). eval=boltz env: eval_protenix.py
 ```
 
 ## ④ eval -> CSV -> Notion
