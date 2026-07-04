@@ -47,16 +47,19 @@ done
 # ⚠️ 정확한 CLI/플래그는 `chai-lab fold --help`로 확인 후 조정
 ```
 
-### Protenix-v2  (새 env)
+### Protenix-v2  (새 env; 서브커맨드 = `pred`, 커널 컴파일 회피)
 ```bash
 conda create -n protenix python=3.11 -y && conda activate protenix
 pip install protenix
-export PROTENIX_ROOT_DIR=~/protenix_weights    # 본인 폴더
+export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights   # weight 큰 디스크
+export LAYERNORM_TYPE=torch                                   # CUDA 커널(LayerNorm) 컴파일 회피 = gcc 불필요
 for t in 10zo 9y0a 9obn 9k6j 9xf9; do
-  ( cd runs/$t && protenix predict --input protenix_$t.json \
-      --out_dir out_protenix -n protenix-v2 --use_msa true --seeds 1,2,3,4,5 > protenix.log 2>&1 )
+  ( cd runs/$t && rm -rf out_protenix && protenix pred -i protenix_$t.json -o out_protenix \
+      -n protenix-v2 -s 101 -e 5 --trimul_kernel torch --triatt_kernel torch \
+      --msa_server_mode colabfold > protenix.log 2>&1 )
+  echo "=== done $t ==="
 done
-# ⚠️ 정확한 서브커맨드/플래그는 `protenix -h`로 확인 후 조정
+# 서브커맨드 = `protenix pred`(predict 아님). -e 5=pose 5개, 모든 커널 torch로(컴파일 X). eval은 boltz env.
 ```
 
 ## ④ eval -> CSV -> Notion
