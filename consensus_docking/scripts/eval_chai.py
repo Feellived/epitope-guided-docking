@@ -78,6 +78,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--phase", default="Benchmark")
     ap.add_argument("--model", default="Chai-1")
+    ap.add_argument("--out-dir", default="out_chai", help="Chai 출력 폴더 (no-MSA는 out_chai_nomsa)")
     ap.add_argument("--csv", default="results/summary.csv")
     a = ap.parse_args()
     rd, tid = a.run_dir, a.target
@@ -91,8 +92,8 @@ def main():
     native = find_one([f"{rd}/{tid}.pdb", f"{rd}/{tid}.cif",
                        f"{rd}/{tid.upper()}.pdb", f"{rd}/{tid.upper()}.cif",
                        f"{rd}/{tid.lower()}.pdb", f"{rd}/{tid.lower()}.cif"])
-    cif = find_one([f"{rd}/out_chai/pred.model_idx_{a.seed}.cif"])
-    npz = find_one([f"{rd}/out_chai/scores.model_idx_{a.seed}.npz"])
+    cif = find_one([f"{rd}/{a.out_dir}/pred.model_idx_{a.seed}.cif"])
+    npz = find_one([f"{rd}/{a.out_dir}/scores.model_idx_{a.seed}.npz"])
     miss = [n for n, v in [("native", native), ("cif", cif), ("npz", npz)] if not v]
     if miss:
         sys.exit(f"[에러] 파일 못 찾음: {miss} (run-dir={rd})")
