@@ -239,5 +239,6 @@ def main():
           + (f" | DockQ={auto_dq:.3f}" if auto_dq is not None else ""))
 
 
-if __name__ == "__main__":
+# PyMOL이 스크립트를 실행하면 __name__ == "pymol" (직접 python 실행이면 "__main__")
+if __name__ in ("__main__", "pymol"):
     main()
