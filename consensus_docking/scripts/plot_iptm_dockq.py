@@ -125,7 +125,7 @@ def main():
             if vals:
                 mat[i, j] = max(vals)
     fig, ax = plt.subplots(figsize=(1.35*len(targets)+3.8, 0.8*len(models)+3.2))
-    fig.subplots_adjust(left=0.30, top=0.78, right=0.90, bottom=0.16)
+    fig.subplots_adjust(left=0.26, top=0.76, right=0.92, bottom=0.16)
     im = ax.imshow(mat, cmap="RdYlGn", vmin=0, vmax=1, aspect="auto")
     ax.set_xticks(range(len(targets))); ax.set_xticklabels(targets)
     ax.set_yticks(range(len(models))); ax.set_yticklabels(models)
@@ -136,12 +136,13 @@ def main():
                 ok = v >= THR
                 ax.text(j, i, f"{v:.2f}" + ("*" if ok else ""), ha="center", va="center",
                         fontsize=9, fontweight="bold" if ok else "normal", color="black")
-    plt.colorbar(im, ax=ax, label="best DockQ", fraction=0.046, pad=0.03)
+    cb = plt.colorbar(im, ax=ax, label="best DockQ", shrink=0.6, aspect=28, pad=0.02)
+    cb.ax.tick_params(labelsize=9)
 
     # 열(타깃) 그룹 브래킷 — 위 (x=data, y=axes-frac)
     txf = ax.get_xaxis_transform()
     for c0, c1, lab in spans([TARGET_TYPE.get(t, "?") for t in targets]):
-        yb, ycap, yt = 1.04, 1.008, 1.085
+        yb, ycap, yt = 1.075, 1.025, 1.13
         ax.plot([c0-0.4, c1+0.4], [yb, yb], transform=txf, color="k", lw=2, clip_on=False)
         ax.plot([c0-0.4, c0-0.4], [yb, ycap], transform=txf, color="k", lw=2, clip_on=False)
         ax.plot([c1+0.4, c1+0.4], [yb, ycap], transform=txf, color="k", lw=2, clip_on=False)
@@ -150,7 +151,7 @@ def main():
     # 행(모델) 그룹 브래킷 — 왼쪽 (x=axes-frac, y=data)
     tyf = ax.get_yaxis_transform()
     for r0, r1, lab in spans([MODEL_MSA.get(m, "?") for m in models]):
-        xb, xcap, xt = -0.42, -0.39, -0.50
+        xb, xcap, xt = -0.24, -0.21, -0.33
         ax.plot([xb, xb], [r0-0.4, r1+0.4], transform=tyf, color="k", lw=2, clip_on=False)
         ax.plot([xb, xcap], [r0-0.4, r0-0.4], transform=tyf, color="k", lw=2, clip_on=False)
         ax.plot([xb, xcap], [r1+0.4, r1+0.4], transform=tyf, color="k", lw=2, clip_on=False)
