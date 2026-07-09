@@ -1,7 +1,6 @@
 # 다양-항원 clean Fab 벤치마크 (메인 도킹/특성분석용) — 2026-07-09 작성
 # 전부 2024+ 공개 = 모든 co-folder 학습 컷오프 이후(leakage-free). 나노바디 제외, Fab만.
-# leakage 판정 = RCSB initial_release_date. 사슬 = auth_asym_id 기준.
-# 다중카피(9VL2·9UGO)는 cognate 1:1 쌍(연속 사슬)만 keep.
+# 전부 단일카피 1:1 (다중카피 배제). leakage 판정 = RCSB initial_release_date. 사슬 = auth_asym_id.
 # Fv(VH+VL) 세트는 make_fv.py로 파생(runs/<id>_fv).
 
 benchmark_diverse:
@@ -32,7 +31,7 @@ benchmark_diverse:
   - id: 9VXL            # CD38 (골수종, Fc 효과기 — 랩)
     format: Fab
     antibody: {H: B, L: C}
-    antigen: {chain: A, name: CD38 (ADP-ribosyl cyclase 1)}
+    antigen: {chain: A, name: CD38 ADP-ribosyl cyclase 1}
     keep_chains: [A, B, C]
     rcsb_release: 2026-05-27
   - id: 9T46            # CD3 epsilon (T-engager 표적 — 랩)
@@ -41,12 +40,12 @@ benchmark_diverse:
     antigen: {chain: P, name: CD3 epsilon}
     keep_chains: [H, L, P]
     rcsb_release: 2026-05-13
-  - id: 9VL2            # CD33 (AML engager/ADC — 랩) — 다중카피, cognate A/B/C
+  - id: 9LY5            # CD276 / B7-H3 (종양 면역치료·ADC/CAR 표적)
     format: Fab
-    antibody: {H: C, L: B}
-    antigen: {chain: A, name: CD33 myeloid antigen}
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: CD276 B7-H3}
     keep_chains: [A, B, C]
-    rcsb_release: 2026-05-27
+    rcsb_release: 2026-03-04
   - id: 9MQR            # ADGRE5/CD97 (GPCR — 어려운/독특)
     format: Fab
     antibody: {H: D, L: E}
@@ -71,9 +70,9 @@ benchmark_diverse:
     antigen: {chain: U, name: uPAR urokinase receptor}
     keep_chains: [H, L, U]
     rcsb_release: 2026-02-04
-  - id: 9UGO            # HBV Middle S (간염 바이러스 표면) — 다중카피, cognate A/B/C
+  - id: 9J4C            # Plexin-A1 (세마포린 신경 수용체 — 독특)
     format: Fab
-    antibody: {H: B, L: A}
-    antigen: {chain: C, name: HBV Middle S protein}
-    keep_chains: [A, B, C]
-    rcsb_release: 2026-02-18
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: Plexin-A1}
+    keep_chains: [A, H, L]
+    rcsb_release: 2026-01-21
