@@ -73,9 +73,9 @@ for model in $MODELS; do
           protenix pred -i "protenix_$t.json" -o out_protenix \
             -n "$PROT_MODEL" -s 101 -e 5 \
             --trimul_kernel torch --triatt_kernel torch > protenix.log 2>&1 ;;
-        colabfold)   # ⚠️ 초안 플래그 — 스모크로 검증 후 확정
+        colabfold)   # AF2-Multimer (colabfold 1.6.1) — 플래그 --help로 확정
           env -u LD_LIBRARY_PATH colabfold_batch "colabfold_$t.fasta" results_colabfold \
-            --num-recycle 3 > colabfold.log 2>&1 ;;
+            --num-models 5 --model-type alphafold2_multimer_v3 --num-recycle 3 > colabfold.log 2>&1 ;;
       esac
     )
     if find "$d/$out" -name '*.cif' 2>/dev/null | grep -q .; then
