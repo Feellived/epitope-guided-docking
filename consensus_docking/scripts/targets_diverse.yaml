@@ -2,6 +2,8 @@
 # 전부 2024+ 공개 = 모든 co-folder 학습 컷오프 이후(leakage-free). 나노바디 제외, Fab만.
 # 전부 단일카피 1:1 (다중카피 배제). leakage 판정 = RCSB initial_release_date. 사슬 = auth_asym_id.
 # Fv(VH+VL) 세트는 make_fv.py로 파생(runs/<id>_fv).
+# 2026-07-10: 펩타이드 항원 2개 제거 → 9T46(CD3ε, 항원 8잔기)·9ZMB(CSP, 항원 19잔기).
+#   선형 펩타이드 계면이라 Fab-단백질 도킹 벤치에 부적합(DockQ 불안정). 최종 10개.
 
 benchmark_diverse:
   - id: 9K6J            # 기존·예측 결과 보유 (유일 RBD)
@@ -22,24 +24,12 @@ benchmark_diverse:
     antigen: {chain: C, name: Bet v 1 birch allergen}
     keep_chains: [A, B, C]
     rcsb_release: 2026-02-11
-  - id: 9ZMB            # 말라리아 CSP (기생충/백신 항원)
-    format: Fab
-    antibody: {H: C, L: D}
-    antigen: {chain: B, name: Circumsporozoite protein}
-    keep_chains: [B, C, D]
-    rcsb_release: 2026-05-27
   - id: 9VXL            # CD38 (골수종, Fc 효과기 — 랩)
     format: Fab
     antibody: {H: B, L: C}
     antigen: {chain: A, name: CD38 ADP-ribosyl cyclase 1}
     keep_chains: [A, B, C]
     rcsb_release: 2026-05-27
-  - id: 9T46            # CD3 epsilon (T-engager 표적 — 랩)
-    format: Fab
-    antibody: {H: H, L: L}
-    antigen: {chain: P, name: CD3 epsilon}
-    keep_chains: [H, L, P]
-    rcsb_release: 2026-05-13
   - id: 9LY5            # CD276 / B7-H3 (종양 면역치료·ADC/CAR 표적)
     format: Fab
     antibody: {H: A, L: B}
