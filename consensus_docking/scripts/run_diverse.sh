@@ -17,6 +17,7 @@ RUN=runs_diverse
 MODELS="${*:-chai protenix}"
 CHAI_ENV="${CHAI_ENV:-chai}"
 PROT_ENV="${PROT_ENV:-protenix}"
+CF_ENV="${CF_ENV:-colabfold}"          # AF2-Multimer(ColabFold) env — 실제 이름 확인 필요
 PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
 LOG="run_diverse.log"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
@@ -30,8 +31,9 @@ fi
 # --- 입력 생성 (없으면 덮어씀, 무해) ---
 say "입력 생성 (make_chai / make_protenix)"
 conda activate boltz 2>/dev/null
-python scripts/make_chai.py     --run-dir "$RUN" >> "$LOG" 2>&1
-python scripts/make_protenix.py --run-dir "$RUN" >> "$LOG" 2>&1
+python scripts/make_chai.py      --run-dir "$RUN" >> "$LOG" 2>&1
+python scripts/make_protenix.py  --run-dir "$RUN" >> "$LOG" 2>&1
+python scripts/make_colabfold.py --run-dir "$RUN" >> "$LOG" 2>&1
 
 for model in $MODELS; do
   say "================ MODEL: $model ================"
@@ -47,6 +49,10 @@ for model in $MODELS; do
       export LAYERNORM_TYPE=torch
       command -v protenix >/dev/null || { say "!! protenix 없음 (env '$PROT_ENV' 확인) → 스킵"; continue; }
       out=out_protenix ;;
+    colabfold)   # AF2-Multimer — ⚠️ 초안(플래그 미검증), 내일 스모크 후 사용
+      conda activate "$CF_ENV" 2>/dev/null
+      command -v colabfold_batch >/dev/null || { say "!! colabfold_batch 없음 (env '$CF_ENV' 확인) → 스킵"; continue; }
+      out=results_colabfold ;;
     *) say "unknown model $model"; continue ;;
   esac
 
@@ -59,14 +65,18 @@ for model in $MODELS; do
     say "run  $base ($model) ..."
     (
       cd "$d" || exit 1
-      if [ "$model" = chai ]; then
-        chai-lab fold "chai_$t.fasta" out_chai --use-msa-server > chai.log 2>&1
-      else
-        rm -rf out_protenix
-        protenix pred -i "protenix_$t.json" -o out_protenix \
-          -n "$PROT_MODEL" -s 101 -e 5 \
-          --trimul_kernel torch --triatt_kernel torch > protenix.log 2>&1
-      fi
+      case "$model" in
+        chai)
+          chai-lab fold "chai_$t.fasta" out_chai --use-msa-server > chai.log 2>&1 ;;
+        protenix)
+          rm -rf out_protenix
+          protenix pred -i "protenix_$t.json" -o out_protenix \
+            -n "$PROT_MODEL" -s 101 -e 5 \
+            --trimul_kernel torch --triatt_kernel torch > protenix.log 2>&1 ;;
+        colabfold)   # ⚠️ 초안 플래그 — 스모크로 검증 후 확정
+          env -u LD_LIBRARY_PATH colabfold_batch "colabfold_$t.fasta" results_colabfold \
+            --num-recycle 3 > colabfold.log 2>&1 ;;
+      esac
     )
     if find "$d/$out" -name '*.cif' 2>/dev/null | grep -q .; then
       say "  OK  $base ($model)"
