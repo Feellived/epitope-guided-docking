@@ -9,7 +9,8 @@
 """
 import argparse, csv, json, os, sys, urllib.request, urllib.error
 
-DATA_SOURCE = "afec6f93-c8eb-4497-ae05-4f1bb24c7df9"   # 실험 로그 DB data_source
+DATA_SOURCE = "afec6f93-c8eb-4497-ae05-4f1bb24c7df9"   # 기본 = Experiment 1 실험 로그 DB
+DS_EXP2 = "68dc0f8e-3a4c-4bd3-bc52-7e1c3e1a52ec"        # Experiment 2 (Fv/다양-항원) 실험 로그 DB
 V = "2025-09-03"
 TRUE = ("1", "true", "yes", "o", "y", "✅")
 
@@ -25,6 +26,19 @@ def num(x):
         return None
 
 
+def infer_format(r):
+    """CSV의 format 열 또는 phase(Diverse-Fab/Fv)에서 Fab/Fv 추론. 없으면 None."""
+    f = (r.get("format") or "").strip()
+    if f in ("Fab", "Fv"):
+        return f
+    p = (r.get("phase") or "").lower()
+    if "fv" in p:
+        return "Fv"
+    if "fab" in p:
+        return "Fab"
+    return None
+
+
 def props(r):
     def t(s):
         return [{"text": {"content": s or ""}}]
@@ -38,6 +52,9 @@ def props(r):
         "성공": {"checkbox": str(r.get("success", "")).strip().lower() in TRUE},
         "비고": {"rich_text": t(r.get("notes", ""))},
     }
+    fmt = infer_format(r)
+    if fmt:                       # 포맷 열이 있는 DB(Exp2)에서만 채워짐; 없으면 Notion이 무시
+        p["포맷"] = {"select": {"name": fmt}}
     for ck, nk in [("dockq_abag", "DockQ(Ab-Ag)"), ("global_iptm", "global ipTM"),
                    ("pair_iptm_abag", "pair ipTM(Ab-Ag)")]:
         v = num(r.get(ck))
@@ -46,8 +63,8 @@ def props(r):
     return p
 
 
-def post(token, p):
-    body = {"parent": {"type": "data_source_id", "data_source_id": DATA_SOURCE}, "properties": p}
+def post(token, p, data_source):
+    body = {"parent": {"type": "data_source_id", "data_source_id": data_source}, "properties": p}
     req = urllib.request.Request(
         "https://api.notion.com/v1/pages", data=json.dumps(body).encode("utf-8"), method="POST",
         headers={"Authorization": f"Bearer {token}", "Notion-Version": V, "Content-Type": "application/json"})
@@ -62,7 +79,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--csv", default="results/summary.csv")
     ap.add_argument("--state", default="results/.notion_synced.txt")
+    ap.add_argument("--data-source", default=DATA_SOURCE,
+                    help="대상 DB data_source. 'exp2' = Experiment 2 DB. 기본 = Experiment 1.")
     a = ap.parse_args()
+    ds = DS_EXP2 if a.data_source == "exp2" else a.data_source
     token = os.environ.get("NOTION_API_TOKEN")
     if not token:
         sys.exit("[에러] 환경변수 NOTION_API_TOKEN 없음. 개인 Mac에서 `export NOTION_API_TOKEN=...` 후 실행.")
@@ -77,7 +97,7 @@ def main():
             k = key(r)
             if k in synced:
                 continue
-            ok, err = post(token, props(r))
+            ok, err = post(token, props(r), ds)
             if ok:
                 st.write(k + "\n")
                 st.flush()
