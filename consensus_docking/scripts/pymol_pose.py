@@ -80,17 +80,24 @@ def chains_of(sel):
 
 
 def detect_antigen(native_ag_sel):
-    """예측(prd)의 각 사슬을 native 항원에 cealign → 가장 잘 맞는 사슬 = 예측 항원."""
-    best = None
+    """예측(prd) 사슬 중 native 항원과 길이(CA수)가 가장 가까운 것 = 예측 항원.
+    예측 항원은 native 항원과 같은 서열 → CA수 diff≈0으로 항상 최소. 길이-우선이라
+    Ig 도메인 항원(PD-1 등)이 항체 사슬과 fold가 닮아도 안 헷갈림. 동률 시 cealign RMSD로 결정."""
+    n_ag = cmd.count_atoms(native_ag_sel + " and name CA")
+    cands = []
     for c in chains_of("prd"):
-        try:
-            r = cmd.cealign(native_ag_sel, f"prd and chain {c}")
-        except Exception:
+        n = cmd.count_atoms(f"prd and chain {c} and name CA")
+        if n == 0:
             continue
-        score = (r.get("alignment_length", 0), -r.get("RMSD", 99.0))
-        if best is None or score > best[0]:
-            best = (score, c)
-    return best[1] if best else None
+        try:
+            rmsd = cmd.cealign(native_ag_sel, f"prd and chain {c}").get("RMSD", 99.0)
+        except Exception:
+            rmsd = 99.0
+        cands.append((abs(n - n_ag), rmsd, c))
+    if not cands:
+        return None
+    cands.sort(key=lambda x: (x[0], x[1]))   # 길이차 우선, 동률이면 RMSD
+    return cands[0][2]
 
 
 def add_caption(png_path, text):
