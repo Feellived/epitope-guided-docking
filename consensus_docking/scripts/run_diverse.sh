@@ -59,7 +59,7 @@ for model in $MODELS; do
   for d in $dirs; do
     [ -d "$d" ] || continue
     base=$(basename "$d"); t=$(echo "${base%_fv}" | tr 'A-Z' 'a-z')
-    if find "$d/$out" -name '*.cif' 2>/dev/null | grep -q .; then
+    if find "$d/$out" \( -name '*.cif' -o -name '*.pdb' \) 2>/dev/null | grep -q .; then
       say "skip $base ($model 이미 있음)"; continue
     fi
     say "run  $base ($model) ..."
@@ -78,7 +78,7 @@ for model in $MODELS; do
             --num-models 5 --model-type alphafold2_multimer_v3 --num-recycle 3 > colabfold.log 2>&1 ;;
       esac
     )
-    if find "$d/$out" -name '*.cif' 2>/dev/null | grep -q .; then
+    if find "$d/$out" \( -name '*.cif' -o -name '*.pdb' \) 2>/dev/null | grep -q .; then
       say "  OK  $base ($model)"
     else
       say "  FAIL $base ($model) — $d/$model.log 확인"
