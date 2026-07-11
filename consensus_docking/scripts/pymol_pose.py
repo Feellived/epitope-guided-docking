@@ -37,6 +37,7 @@ PRED_GLOB = {
     "Chai-1":        "out_chai/pred.model_idx_{seed}.cif",
     "Chai-1-noMSA":  "out_chai_nomsa/pred.model_idx_{seed}.cif",
     "Protenix":      "out_protenix/**/{low}_sample_{seed}.cif",
+    "Protenix-base": "out_protenix/**/{low}_sample_{seed}.cif",
     "AF2-Multimer":  "results_colabfold/*_model_{seed}_*.pdb",
     "tFold-Ag":      "out_tfold/*seed{seed}*.pdb",
 }
