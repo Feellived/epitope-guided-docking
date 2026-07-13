@@ -62,15 +62,22 @@ def write_merged(model, ag_id, ab_ids, out_pdb):
     io = PDBIO(); io.set_structure(s); io.save(out_pdb)
 
 
+_DBG = {"n": 0}
+
+
 def dockq(model_pdb, native_pdb):
     try:
-        r = subprocess.run(["DockQ", model_pdb, native_pdb, "--mapping", "AB:AB"],
+        r = subprocess.run(["DockQ", model_pdb, native_pdb],
                            capture_output=True, text=True, timeout=180)
-        out = r.stdout
-    except Exception:
+    except Exception as e:
+        if _DBG["n"] < 1:
+            print("[DEBUG] DockQ 실행 예외:", e); _DBG["n"] += 1
         return None
-    mm = re.search(r"DockQ\s+([\d.]+)", out)
-    return float(mm.group(1)) if mm else None
+    out = (r.stdout or "") + (r.stderr or "")
+    if _DBG["n"] < 1:                       # 첫 호출 원문 출력 (파서 확인용)
+        print("[DEBUG] ===== DockQ raw output =====\n" + out[:800] + "\n[DEBUG] ====="); _DBG["n"] += 1
+    vals = re.findall(r"\bDockQ\b[:\s]+([0-9]*\.[0-9]+)", out)
+    return max(float(v) for v in vals) if vals else None
 
 
 def main():
