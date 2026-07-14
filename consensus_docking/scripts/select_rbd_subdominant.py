@@ -77,10 +77,12 @@ def main():
                 aa=np.array([at.get_coord() for at in r])
                 if np.sqrt(((aa[:,None,:]-bat[None,:,:])**2).sum(-1)).min()<=5: hit.add(cm[idx]+1+OFF)
             if len(hit)<4: continue
-            hf=len(hit&HOT)/len(hit); roles=fasta_roles(pdb)
+            hf=len(hit&HOT)/len(hit); roles=fasta_roles(pdb); nano=len(bid)==1
             H=[c for c in bid if roles.get(c)=="H"]; L=[c for c in bid if roles.get(c)=="L"]
-            cand.append({"pdb":pdb,"ag":ag,"H":H[0] if H else None,"L":L[0] if L else None,
-                         "n":len(hit),"hot":hf,"nano":len(bid)==1,"off":sorted(x for x in hit if x not in HOT)})
+            hc = bid[0] if nano else (H[0] if H else (bid[0] if bid else None))  # 나노바디=단일사슬을 H로
+            lc = None if nano else (L[0] if L else (bid[1] if len(bid)>1 else None))
+            cand.append({"pdb":pdb,"ag":ag,"H":hc,"L":lc,
+                         "n":len(hit),"hot":hf,"nano":nano,"off":sorted(x for x in hit if x not in HOT)})
         except Exception: continue
         if i%15==0: print(f"  {i}/{len(pdbs)} (후보 {len(cand)})")
     cand.sort(key=lambda x:x["hot"])
