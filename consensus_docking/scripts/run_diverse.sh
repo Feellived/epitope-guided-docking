@@ -13,7 +13,7 @@
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 
-RUN=runs_diverse
+RUN="${RUN:-runs_diverse}"
 MODELS="${*:-chai protenix}"
 CHAI_ENV="${CHAI_ENV:-chai}"
 PROT_ENV="${PROT_ENV:-protenix}"
