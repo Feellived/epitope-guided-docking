@@ -45,6 +45,16 @@ for d in docs/run_guide.md docs/automation.md; do
 done
 echo "  (수정: render_cases_diverse OUT · render_5model OUT · extract_chains 기본값 · docs targets 경로)"
 
+echo "== 6b) 런타임 출력 폴더명 통일: results_boltz->out_boltz · results_colabfold->out_colabfold =="
+# reader(Phase 0 핵심 + eval_boltz)는 suffix glob(*boltz/*colabfold)로 양쪽 호환 → 서버 rename 전/후 모두 동작.
+for f in scripts/diagnose_antibody_side.py scripts/where_docked.py scripts/merge_dockq.py scripts/eval_boltz.py; do
+  perl -pi -e 's{results_boltz/}{*boltz/}g; s{results_colabfold/}{*colabfold/}g' "$f"
+done
+# writer(run_diverse)·eval_colabfold·docs는 새 이름(out_*)으로 확정.
+perl -pi -e 's{results_colabfold}{out_colabfold}g' scripts/run_diverse.sh scripts/eval_colabfold.py
+[ -f docs/run_guide.md ] && perl -pi -e 's{results_boltz}{out_boltz}g; s{results_colabfold}{out_colabfold}g' docs/run_guide.md
+echo "  (reader=suffix 호환 / writer·docs=out_* 확정. 서버 실물 폴더 rename은 migrate_server_outdirs.sh)"
+
 echo "== 7) README 재작성 (현재 diverse 흐름 + Phase 0) =="
 cat > README.md <<'READMEEOF'
 # Consensus Docking — 항체-항원 pose 재랭킹 / 오케스트레이션
@@ -69,7 +79,7 @@ cat > README.md <<'READMEEOF'
 2. `make_fv.py` — 항체 사슬 ANARCI(IMGT)로 Fv(VH+VL) 절단 → `runs_diverse/<id>_fv/`
 3. `make_{boltz,chai,protenix,colabfold,tfold}.py` — 모델별 입력 생성
 4. 예측: `run_diverse.sh`(chai·protenix·colabfold) · `run_tfold.sh` · `run_5model.sh`(=colabfold+tfold 묶음)
-   → 각 `runs_diverse/<id>/{results_boltz,out_chai,out_protenix,results_colabfold,out_tfold}`
+   → 각 `runs_diverse/<id>/{out_boltz,out_chai,out_protenix,out_colabfold,out_tfold}`
 5. eval: `eval_{boltz,chai,colabfold,protenix,tfold}.py` → `results/summary.csv`(source of truth)
    → `sync_notion.py`(개인 Mac, 토큰 env)
 6. 분석: `consensus_analysis.py`·`plot_iptm_dockq.py`(집계) /
@@ -81,7 +91,7 @@ cat > README.md <<'READMEEOF'
 새 예측 없이 기존 pose만 재분석 → 0.49 기준 oracle·placement 여부·ipTM 품질로 프로젝트 go/no-go 판정.
 
 ## 규칙
-- 런타임 출력 폴더(`runs_diverse`·`results_boltz`·`out_*`·`results_colabfold`)는 스크립트에 하드코딩 → **이름 변경 금지.**
+- 런타임 출력 폴더(`runs_diverse` · `out_boltz` · `out_chai` · `out_protenix` · `out_colabfold` · `out_tfold`)는 스크립트에 하드코딩 → 바꾸려면 reader/writer/서버 실물을 lockstep으로.
 - 결과 구조·MSA·weight·CSV·`.pse`는 git에 안 올림(.gitignore).
 - Notion 토큰은 서버·깃·문서에 저장 금지(개인 Mac env에서만).
 READMEEOF
@@ -97,7 +107,7 @@ G git add -A ../.gitignore .
 
 echo
 echo "== 10) 자기점검: 이동한 옛 경로가 (archive 제외) 아직 참조되나 =="
-LEFT=$(grep -rn -E 'fig_diverse|fig_5model|scripts/targets\.yaml|configs/targets\.yaml|01_prep_9vp0|RUN_ALL\.md|AUTOMATION\.md|benchmark_targets_2026|(^|[^a-z])src/' \
+LEFT=$(grep -rn -E 'fig_diverse|fig_5model|scripts/targets\.yaml|configs/targets\.yaml|01_prep_9vp0|RUN_ALL\.md|AUTOMATION\.md|benchmark_targets_2026|results_boltz|results_colabfold|(^|[^a-z])src/' \
         --include='*.sh' --include='*.py' --include='*.md' . 2>/dev/null \
         | grep -v '^\./archive/' || true)
 if [ -n "$LEFT" ]; then echo "  ⚠️ 남은 참조(확인 요):"; echo "$LEFT" | sed 's/^/    /'; else echo "  ✓ 깨진 참조 없음"; fi
@@ -106,6 +116,11 @@ echo
 echo "======================================================================"
 echo " 완료(커밋 안 함). 아래로 검토 후 직접 커밋:"
 echo "   git status"
-echo "   git commit -m 'consensus_docking 재구성: docs/configs/figures/archive 분리, .pse 제거, README 갱신'"
+echo "   git commit -m 'consensus_docking 재구성: docs/configs/figures/archive 분리 + out_* 통일 + .pse 제거 + README'"
 echo "   git push"
+echo
+echo " ★ 서버 실물 예측 폴더(results_boltz/results_colabfold) rename은 별도:"
+echo "   서버 consensus_docking에서  bash scripts/migrate_server_outdirs.sh        (dry-run 미리보기)"
+echo "                              bash scripts/migrate_server_outdirs.sh --apply (실제 rename)"
+echo "   (reader는 양쪽 호환이라 rename 전에도 Phase 0는 정상 동작 — rename은 정리용)"
 echo "======================================================================"
