@@ -25,10 +25,10 @@ from Bio.Data.IUPACData import protein_letters_3to1
 
 RUN = "runs_diverse"
 POSE_GLOB = {
-    "Boltz-2":       "results_boltz/**/*_model_*.cif",
+    "Boltz-2":       "*boltz/**/*_model_*.cif",
     "Chai-1":        "out_chai/pred.model_idx_*.cif",
     "Protenix-base": "out_protenix/**/*_sample_*.cif",
-    "AF2-Multimer":  "results_colabfold/*_unrelaxed_rank_*.pdb",
+    "AF2-Multimer":  "*colabfold/*_unrelaxed_rank_*.pdb",
     "tFold-Ag":      "out_tfold/*seed*.pdb",
 }
 MODELS = list(POSE_GLOB)

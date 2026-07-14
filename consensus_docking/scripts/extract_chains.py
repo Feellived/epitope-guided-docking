@@ -47,7 +47,7 @@ def load_targets(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--targets", default="targets.yaml")
+    ap.add_argument("--targets", default="configs/targets_diverse.yaml")
     ap.add_argument("--out-dir", default="runs")
     ap.add_argument("--only", help="쉼표구분 PDB id (예: 10ZO,9K6J)")
     a = ap.parse_args()

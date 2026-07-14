@@ -37,3 +37,12 @@ env/
 *.swp
 consensus_docking/runs/
 consensus_docking/results/.notion_synced.txt
+*.pse
+*.log
+consensus_docking/runs_diverse/
+consensus_docking/tfold/
+consensus_docking/DeepRank-GNN-esm/
+consensus_docking/fig/
+consensus_docking/results/*.png
+consensus_docking/runs
+consensus_docking/runs_diverse

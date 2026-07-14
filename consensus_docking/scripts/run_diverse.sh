@@ -52,7 +52,7 @@ for model in $MODELS; do
     colabfold)   # AF2-Multimer — ⚠️ 초안(플래그 미검증), 내일 스모크 후 사용
       conda activate "$CF_ENV" 2>/dev/null
       command -v colabfold_batch >/dev/null || { say "!! colabfold_batch 없음 (env '$CF_ENV' 확인) → 스킵"; continue; }
-      out=results_colabfold ;;
+      out=out_colabfold ;;
     *) say "unknown model $model"; continue ;;
   esac
 
@@ -74,7 +74,7 @@ for model in $MODELS; do
             -n "$PROT_MODEL" -s 101 -e 5 \
             --trimul_kernel torch --triatt_kernel torch > protenix.log 2>&1 ;;
         colabfold)   # AF2-Multimer (colabfold 1.6.1) — 플래그 --help로 확정
-          env -u LD_LIBRARY_PATH colabfold_batch "colabfold_$t.fasta" results_colabfold \
+          env -u LD_LIBRARY_PATH colabfold_batch "colabfold_$t.fasta" out_colabfold \
             --num-models 5 --model-type alphafold2_multimer_v3 --num-recycle 3 > colabfold.log 2>&1 ;;
       esac
     )

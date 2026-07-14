@@ -4,7 +4,7 @@
 서버(conda dock)에서 실행. 토큰 불필요.
 필요: DockQ (CLI), pyyaml(선택; targets.yaml 읽을 때). run-dir 안에
   <TARGET>.pdb (정답),  boltz_<target>.yaml (입력, 사슬 순서용),
-  results_boltz/**/*_model_<seed>.cif,  confidence_*_model_<seed>.json
+  *boltz/**/*_model_<seed>.cif,  confidence_*_model_<seed>.json
 
 예:
   python eval_boltz.py --target 9VP0 --run-dir . --targets ../targets.yaml \
@@ -129,8 +129,8 @@ def main():
                        f"{rd}/{tid.upper()}.pdb", f"{rd}/{tid.upper()}.cif",
                        f"{rd}/{tid.lower()}.pdb", f"{rd}/{tid.lower()}.cif"])
     yml = find_one([f"{rd}/boltz_{tid.lower()}.yaml", f"{rd}/boltz_*.yaml"])
-    cif = find_one([f"{rd}/results_boltz/**/*_model_{a.seed}.cif"])
-    conf = find_one([f"{rd}/results_boltz/**/confidence_*_model_{a.seed}.json"])
+    cif = find_one([f"{rd}/*boltz/**/*_model_{a.seed}.cif"])
+    conf = find_one([f"{rd}/*boltz/**/confidence_*_model_{a.seed}.json"])
     miss = [n for n, v in [("native", native), ("yaml", yml), ("cif", cif), ("conf", conf)] if not v]
     if miss:
         sys.exit(f"[에러] 파일 못 찾음: {miss} (run-dir={rd})")

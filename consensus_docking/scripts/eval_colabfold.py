@@ -2,12 +2,12 @@
 """[eval · ColabFold AF2-Multimer] 한 복합체의 5 pose -> 각 DockQ + 신뢰도 -> summary.csv.
 
 eval_chai.py를 본떴다. 차이:
-  - 입력 = PDB (results_colabfold/<id>_unrelaxed_rank_*_model_*_seed_*.pdb, 보통 5개)
+  - 입력 = PDB (out_colabfold/<id>_unrelaxed_rank_*_model_*_seed_*.pdb, 보통 5개)
   - 신뢰도 = ColabFold scores json (iptm=global 스칼라, ptm, plddt 리스트)
   - AF2-Multimer는 per-chain-pair ipTM이 없음 -> pair_iptm_abag = "" (NA)
   - pose 식별 = model 번호(seed 열에 기록), rank는 notes에.
 chains.json(antigen/antibody/order)로 역할·사슬순서. ColabFold는 입력 order대로 A/B/C 라벨.
-run-dir 안: chains.json, <ID>.pdb/.cif(정답), results_colabfold/*.pdb + *_scores_*.json
+run-dir 안: chains.json, <ID>.pdb/.cif(정답), out_colabfold/*.pdb + *_scores_*.json
 사용(consensus_docking 루트에서, DockQ 설치된 env):
   python scripts/eval_colabfold.py --target 10ZO --run-dir runs/10zo \
       --phase Benchmark --model AF2-Multimer --csv results/summary.csv
@@ -81,7 +81,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", required=True)
     ap.add_argument("--run-dir", default=".")
-    ap.add_argument("--results", default="results_colabfold")   # run-dir 하위 출력 폴더
+    ap.add_argument("--results", default="out_colabfold")   # run-dir 하위 출력 폴더
     ap.add_argument("--phase", default="Benchmark")
     ap.add_argument("--model", default="AF2-Multimer")
     ap.add_argument("--csv", default="results/summary.csv")
