@@ -18,10 +18,11 @@ GI=../.gitignore
 add_ignore(){ grep -qxF "$1" "$GI" 2>/dev/null || { echo "$1" >> "$GI"; echo "  + $1"; }; }
 add_ignore '*.pse'
 add_ignore '*.log'
-add_ignore 'consensus_docking/runs/'
-add_ignore 'consensus_docking/runs_diverse/'
-add_ignore 'consensus_docking/tfold/'
-add_ignore 'consensus_docking/DeepRank-GNN-esm/'
+# 슬래시 없이 = 디렉토리·심볼릭링크 둘 다 차단 (runs/runs_diverse는 서버에서 심링크일 수 있음)
+add_ignore 'consensus_docking/runs'
+add_ignore 'consensus_docking/runs_diverse'
+add_ignore 'consensus_docking/tfold'
+add_ignore 'consensus_docking/DeepRank-GNN-esm'
 add_ignore 'consensus_docking/fig/'
 add_ignore 'consensus_docking/results/*.png'
 
@@ -30,6 +31,11 @@ G git rm -f -q --ignore-unmatch fig_diverse/*.pse fig_5model/*.pse
 
 echo "== 3) 문서 통합: README 하나만 남기고 3개 삭제 (핵심은 아래 README로) =="
 G git rm -q --ignore-unmatch RUN_ALL.md AUTOMATION.md benchmark_targets_2026.md
+
+echo "== 3b) 승인된 불필요 코드 삭제 (사용자 승인 2026-07-14; untracked → rm) =="
+for f in deeprank_batch.py immunebuilder_rmsd.py scripts/make_colabfold.exp1.py; do
+  if [ -e "$f" ]; then G rm -f "$f"; echo "    삭제: $f"; fi
+done
 
 echo "== 4) 설정 통합 -> configs/ (옛 9VP0 config는 archive) =="
 mkdir -p archive
@@ -120,9 +126,9 @@ LEFT=$(grep -rn -E 'scripts/targets\.yaml|configs/targets\.yaml|RUN_ALL\.md|AUTO
 [ -n "$LEFT" ] && { echo "  ⚠️ 남은 참조(확인 요):"; echo "$LEFT" | sed 's/^/    /'; } || echo "  ✓ 깨진 참조 없음"
 
 echo
-echo "== 12) 트래킹 안 된 네 코드 (안 건드림 — 결정 필요) =="
-for f in deeprank_batch.py immunebuilder_rmsd.py scripts/make_colabfold.exp1.py; do
-  [ -e "$f" ] && echo "  · $f   (commit / archive / delete? 알려주면 처리)"
+echo "== 12) 참고: 아직 남은 대형 아티팩트 (gitignore됨; 서버 디스크 정리는 별도) =="
+for d in DeepRank-GNN-esm tfold runs runs_diverse fig fig_diverse fig_5model; do
+  [ -e "$d" ] && echo "  · $d/  (git엔 안 올라감. fig* 삭제/정리는 ls 확인 후 별도 안내)"
 done
 
 echo
