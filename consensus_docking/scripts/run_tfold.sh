@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.." || exit 1
 ROOT="$(pwd)"                          # .../consensus_docking
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 
-RUN=runs_diverse
+RUN="${RUN:-runs_diverse}"
 CF_ENV="${CF_ENV:-colabfold}"
 TFOLD_ENV="${TFOLD_ENV:-tfold}"
 TFOLD_DIR="$ROOT/tfold"                 # tFold 레포 루트 (predict.py가 tfold 패키지 import)
