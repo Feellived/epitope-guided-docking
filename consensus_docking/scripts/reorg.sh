@@ -18,10 +18,11 @@ GI=../.gitignore
 add_ignore(){ grep -qxF "$1" "$GI" 2>/dev/null || { echo "$1" >> "$GI"; echo "  + $1"; }; }
 add_ignore '*.pse'
 add_ignore '*.log'
-add_ignore 'consensus_docking/runs/'
-add_ignore 'consensus_docking/runs_diverse/'
-add_ignore 'consensus_docking/tfold/'
-add_ignore 'consensus_docking/DeepRank-GNN-esm/'
+# 슬래시 없이 = 디렉토리·심볼릭링크 둘 다 차단 (runs/runs_diverse는 서버에서 심링크일 수 있음)
+add_ignore 'consensus_docking/runs'
+add_ignore 'consensus_docking/runs_diverse'
+add_ignore 'consensus_docking/tfold'
+add_ignore 'consensus_docking/DeepRank-GNN-esm'
 add_ignore 'consensus_docking/fig/'
 add_ignore 'consensus_docking/results/*.png'
 
