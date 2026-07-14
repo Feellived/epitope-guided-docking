@@ -1,0 +1,26 @@
+
+===== 9MQR Fab =====  native 항원 256-540
+  TRUE epitope (n=20): [349, 351, 352, 353, 370, 371, 372, 373, 374, 375, 376, 377, 380, 465, 516, 517, 519, 520, 522, 524]   [RBM:1 core:9 class3:0 other:10]
+  Boltz-2        pred_epitope(>= 3/5, n=16): [267, 268, 269, 270, 319, 321, 322, 329, 415, 416, 417, 418, 419, 435, 504, 505]
+                 [RBM:2 core:0 class3:0 other:14]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=19): [319, 320, 321, 322, 413, 415, 417, 418, 419, 420, 421, 435, 436, 437, 438, 504, 505, 506, 540]
+                 [RBM:5 core:0 class3:0 other:14]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=15): [264, 265, 267, 268, 269, 270, 321, 322, 329, 332, 453, 499, 500, 504, 505]
+                 [RBM:5 core:0 class3:0 other:10]  true∩recall=0.00
+  AF2-Multimer   pred_epitope(>= 3/5, n=14): [368, 369, 370, 371, 373, 374, 375, 376, 377, 380, 381, 382, 384, 386]
+                 [RBM:0 core:13 class3:0 other:1]  true∩recall=0.40
+  tFold-Ag       pred_epitope(>= 3/5, n=18): [266, 270, 271, 272, 273, 274, 275, 276, 277, 312, 313, 314, 315, 316, 317, 318, 322, 326]
+                 [RBM:0 core:0 class3:0 other:18]  true∩recall=0.00
+
+===== 9MQR Fv =====  native 항원 256-540
+  TRUE epitope (n=20): [349, 351, 352, 353, 370, 371, 372, 373, 374, 375, 376, 377, 380, 465, 516, 517, 519, 520, 522, 524]   [RBM:1 core:9 class3:0 other:10]
+  Boltz-2        pred_epitope(>= 3/5, n=20): [265, 267, 268, 269, 270, 271, 318, 319, 321, 322, 325, 415, 417, 418, 419, 420, 421, 435, 504, 505]
+                 [RBM:2 core:0 class3:0 other:18]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=18): [319, 320, 321, 322, 413, 414, 415, 416, 417, 418, 420, 421, 435, 436, 437, 438, 439, 505]
+                 [RBM:4 core:0 class3:0 other:14]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=9): [408, 412, 413, 436, 438, 439, 440, 441, 539]
+                 [RBM:4 core:0 class3:0 other:5]  true∩recall=0.00
+  AF2-Multimer   pred_epitope(>= 3/5, n=13): [368, 369, 371, 373, 374, 375, 376, 379, 380, 382, 384, 385, 386]
+                 [RBM:0 core:12 class3:0 other:1]  true∩recall=0.30
+  tFold-Ag       pred_epitope(>= 3/5, n=21): [265, 266, 267, 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 280, 281, 311, 313, 314, 315]
+                 [RBM:0 core:0 class3:0 other:21]  true∩recall=0.00

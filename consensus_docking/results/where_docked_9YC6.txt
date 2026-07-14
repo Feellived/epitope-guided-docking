@@ -1,0 +1,26 @@
+
+===== 9YC6 Fab =====  native 항원 1-283
+  TRUE epitope (n=11): [60, 61, 102, 103, 106, 107, 108, 109, 178, 179, 180]   [RBM:0 core:0 class3:0 other:11]
+  Boltz-2        pred_epitope(>= 3/5, n=13): [34, 88, 89, 90, 91, 92, 93, 94, 111, 112, 118, 173, 174]
+                 [RBM:0 core:0 class3:0 other:13]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=4): [279, 280, 281, 282]
+                 [RBM:0 core:0 class3:0 other:4]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=14): [59, 60, 61, 62, 102, 103, 106, 107, 108, 109, 179, 180, 181, 182]
+                 [RBM:0 core:0 class3:0 other:14]  true∩recall=0.91
+  AF2-Multimer   pred_epitope(>= 3/5, n=14): [59, 60, 61, 62, 104, 106, 107, 108, 109, 110, 111, 138, 139, 141]
+                 [RBM:0 core:0 class3:0 other:14]  true∩recall=0.55
+  tFold-Ag       pred_epitope(>= 3/5, n=36): [100, 105, 106, 107, 108, 109, 127, 128, 129, 142, 143, 165, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 191, 192, 193, 194, 195, 211, 212, 213, 214, 215, 216, 269, 270]
+                 [RBM:0 core:0 class3:0 other:36]  true∩recall=0.55
+
+===== 9YC6 Fv =====  native 항원 1-283
+  TRUE epitope (n=11): [60, 61, 102, 103, 106, 107, 108, 109, 178, 179, 180]   [RBM:0 core:0 class3:0 other:11]
+  Boltz-2        pred_epitope(>= 3/5, n=17): [34, 61, 87, 88, 89, 90, 91, 93, 111, 112, 113, 114, 118, 119, 172, 173, 174]
+                 [RBM:0 core:0 class3:0 other:17]  true∩recall=0.09
+  Chai-1         pred_epitope(>= 3/5, n=11): [32, 35, 84, 85, 86, 87, 88, 89, 90, 91, 118]
+                 [RBM:0 core:0 class3:0 other:11]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=14): [59, 60, 61, 62, 102, 103, 105, 106, 107, 108, 109, 179, 180, 181]
+                 [RBM:0 core:0 class3:0 other:14]  true∩recall=0.91
+  AF2-Multimer   pred_epitope(>= 3/5, n=15): [58, 59, 60, 61, 62, 104, 106, 107, 108, 109, 110, 111, 138, 139, 141]
+                 [RBM:0 core:0 class3:0 other:15]  true∩recall=0.55
+  tFold-Ag       pred_epitope(>= 3/5, n=14): [191, 192, 220, 221, 265, 266, 267, 268, 269, 270, 271, 276, 279, 280]
+                 [RBM:0 core:0 class3:0 other:14]  true∩recall=0.00

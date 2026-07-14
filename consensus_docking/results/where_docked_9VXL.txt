@@ -1,0 +1,26 @@
+
+===== 9VXL Fab =====  native 항원 49-283
+  TRUE epitope (n=11): [84, 87, 88, 89, 90, 91, 92, 94, 108, 109, 164]   [RBM:0 core:0 class3:0 other:11]
+  Boltz-2        pred_epitope(>= 3/5, n=9): [140, 141, 276, 278, 279, 280, 281, 282, 283]
+                 [RBM:0 core:0 class3:0 other:9]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=15): [72, 73, 74, 75, 134, 135, 136, 140, 141, 278, 279, 280, 281, 282, 283]
+                 [RBM:0 core:0 class3:0 other:15]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=16): [62, 65, 66, 69, 72, 73, 75, 133, 134, 135, 136, 140, 141, 142, 143, 147]
+                 [RBM:0 core:0 class3:0 other:16]  true∩recall=0.00
+  AF2-Multimer   pred_epitope(>= 3/5, n=2): [141, 281]
+                 [RBM:0 core:0 class3:0 other:2]  true∩recall=0.00
+  tFold-Ag       pred_epitope(>= 3/5, n=72): [77, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 91, 92, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 145, 148, 149, 150, 182, 187, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 269]
+                 [RBM:0 core:0 class3:0 other:72]  true∩recall=0.73
+
+===== 9VXL Fv =====  native 항원 49-283
+  TRUE epitope (n=11): [84, 87, 88, 89, 90, 91, 92, 94, 108, 109, 164]   [RBM:0 core:0 class3:0 other:11]
+  Boltz-2        pred_epitope(>= 3/5, n=12): [135, 141, 202, 203, 236, 237, 274, 276, 278, 280, 281, 283]
+                 [RBM:0 core:0 class3:0 other:12]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=8): [69, 70, 72, 73, 78, 118, 140, 141]
+                 [RBM:0 core:0 class3:0 other:8]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=18): [62, 65, 66, 68, 69, 72, 73, 75, 133, 134, 136, 140, 141, 142, 143, 147, 152, 155]
+                 [RBM:0 core:0 class3:0 other:18]  true∩recall=0.00
+  AF2-Multimer   pred_epitope(>= 3/5, n=11): [130, 131, 134, 135, 140, 141, 279, 280, 281, 282, 283]
+                 [RBM:0 core:0 class3:0 other:11]  true∩recall=0.00
+  tFold-Ag       pred_epitope(>= 3/5, n=12): [202, 203, 236, 237, 249, 250, 252, 255, 272, 276, 278, 279]
+                 [RBM:0 core:0 class3:0 other:12]  true∩recall=0.00

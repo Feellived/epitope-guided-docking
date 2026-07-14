@@ -1,0 +1,11 @@
+target fmt  model          epi_recall  abRMSD@best  min_abRMSD  poses
+9MQR   Fab  Boltz-2              0.00         2.27        2.27      5
+9MQR   Fab  Chai-1               0.00         2.84        2.84      5
+9MQR   Fab  Protenix-base        0.50         2.79        1.64      5
+9MQR   Fab  AF2-Multimer         0.75         1.25        1.25      5
+9MQR   Fab  tFold-Ag             0.00         2.32        1.88      5
+9MQR   Fv   Boltz-2              0.00         3.22        2.54      5
+9MQR   Fv   Chai-1               0.25         2.80        2.80      5
+9MQR   Fv   Protenix-base        0.00         1.70        1.53      5
+9MQR   Fv   AF2-Multimer         0.50         1.24        1.19      5
+9MQR   Fv   tFold-Ag             0.00         2.74        2.47      5
