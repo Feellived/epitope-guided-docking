@@ -43,10 +43,10 @@ def region_rbd(auth):
     return "other"
 
 
-def rcsb_seq_search(ref, max_res, rows):
+def rcsb_seq_search(ref, max_res, rows, identity=0.9):
     q = {"query": {"type": "group", "logical_operator": "and", "nodes": [
             {"type": "terminal", "service": "sequence",
-             "parameters": {"evalue_cutoff": 1, "identity_cutoff": 0.9, "sequence_type": "protein", "value": ref}},
+             "parameters": {"evalue_cutoff": 1, "identity_cutoff": identity, "sequence_type": "protein", "value": ref}},
             {"type": "terminal", "service": "text",
              "parameters": {"attribute": "rcsb_assembly_info.polymer_entity_instance_count", "operator": "greater_or_equal", "value": 2}},
             {"type": "terminal", "service": "text",
@@ -97,6 +97,8 @@ def main():
     ap.add_argument("--pdb-list", help="PDB id 목록 파일(없으면 RCSB 자동 검색)")
     ap.add_argument("--max", type=int, default=200)
     ap.add_argument("--max-res", type=float, default=3.0)
+    ap.add_argument("--identity", type=float, default=0.9, help="RCSB 서열검색 identity(비-RBD 항원=0.7 권장, isoform 포함)")
+    ap.add_argument("--min-ag-ident", type=float, default=0.8, help="항원 사슬 매칭 최소 identity(다도메인/fragment 항원은 낮춰야)")
     ap.add_argument("--tag", default="rbd")
     ap.add_argument("--out", default=None)
     a = ap.parse_args()
@@ -109,10 +111,16 @@ def main():
     if a.pdb_list:
         pdbs = [x.strip().upper() for x in open(a.pdb_list) if x.strip()]
     else:
-        print(f"[RCSB] 기준서열({L}aa) 복합체 검색 (res<={a.max_res}) ...")
-        pdbs = rcsb_seq_search(ref, a.max_res, a.max)
+        print(f"[RCSB] 기준서열({L}aa) 복합체 검색 (res<={a.max_res}, identity>={a.identity}) ...")
+        try:
+            pdbs = rcsb_seq_search(ref, a.max_res, a.max, a.identity)
+        except Exception as e:                                   # 검색 실패해도 안 죽고 빈 지도 저장
+            print(f"!! RCSB 검색 실패({type(e).__name__}: {e}) → 빈 지도. --identity 낮추거나 --pdb-list 사용")
+            pdbs = []
     pdbs = pdbs[:a.max]
     print(f"대상 PDB {len(pdbs)}개 (max {a.max})")
+    if not pdbs:
+        print("!! 검색 0개 — 원인: 긴서열/isoform/네트워크. --identity 0.7 또는 --pdb-list 권장")
 
     freq = np.zeros(L, dtype=int)      # ref position별 몇 개 복합체가 에피토프로
     used = 0; skipped = 0
@@ -124,7 +132,7 @@ def main():
             if not chains: skipped += 1; continue
             seqs = {k: "".join(aa for _, aa in v) for k, v in chains.items()}
             ag = max(seqs, key=lambda c: ident(seqs[c], ref))
-            if ident(seqs[ag], ref) < 0.8: skipped += 1; continue   # RBD 못 찾음
+            if ident(seqs[ag], ref) < a.min_ag_ident: skipped += 1; continue   # 항원 사슬 못 찾음
             # binder = 항원 아님 + RBD 복사본 아님(ident<0.5) + len>=30
             binder_atoms = []
             for c, s in seqs.items():
