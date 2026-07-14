@@ -47,6 +47,10 @@ for d in $dirs; do
   ( cd "$d" && env -u LD_LIBRARY_PATH colabfold_batch "antigen_$t.fasta" "msa_$t" --msa-only > agmsa.log 2>&1 )
 done
 
+# ========== a3m 정리 (tFold MSA 파서 null 패딩 버그 방지) ==========
+say "a3m 정리 (sanitize_a3m: query 길이 안 맞는 불량행 제거)"
+python3 scripts/sanitize_a3m.py "$RUN" >> "$LOG" 2>&1
+
 # ========== Phase 2: tFold predict × seed ==========
 say "===== Phase 2: tFold predict (seed $SEEDS) ====="
 conda activate "$TFOLD_ENV" 2>/dev/null
