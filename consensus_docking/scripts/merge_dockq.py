@@ -106,7 +106,7 @@ def main():
             if not nat:
                 continue
             natm = load(nat)
-            n_heavy = len(d["chains"][0]["seq"]) if d.get("chains") else 200
+            n_heavy = len({c["id"]: c["seq"] for c in d.get("chains", [])}.get(ab[0], "")) or 200  # heavy=항체 첫 사슬(항원이 chains[0]일 때 버그 fix)
             with tempfile.TemporaryDirectory() as td:
                 nat_m = os.path.join(td, "nat.pdb")
                 write_merged(natm, ag, ab, nat_m)   # native: 선언된 사슬(heavy first)
