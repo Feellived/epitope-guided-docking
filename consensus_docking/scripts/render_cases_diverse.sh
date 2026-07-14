@@ -5,7 +5,7 @@
 # 필요: pymol-open-source, results/summary.csv, runs_diverse/<id>/ 예측 출력.
 set -u
 CSV=results/summary.csv
-OUT=fig_diverse
+OUT=figures/cases_diverse
 mkdir -p "$OUT"
 
 render () {  # model target phase run-dir out-name
