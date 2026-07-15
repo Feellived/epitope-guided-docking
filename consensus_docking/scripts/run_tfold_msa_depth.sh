@@ -8,7 +8,7 @@ ROOT="$(pwd)"
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 SRC="${SRC:-runs_rbd}"; SEED0="${SEED0:-0}"
 TFOLD_ENV="${TFOLD_ENV:-tfold}"; TFOLD_DIR="$ROOT/tfold"
-SEEDS="${SEEDS:-42 43 44}"
+SEEDS="${SEEDS:-42 43 44 45 46}"
 TARGETS="${1:-8P5M 8SDF 8SIQ 8SIS 8SIT 8XSI 9ML8 9ML9 9SBB 9ZDU}"; DEPTHS="${2:-8 1}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 # tfold fasta 없으면 생성 (stdlib)
