@@ -23,7 +23,7 @@ from Bio.PDB import MMCIFParser, PDBParser
 from Bio.Align import PairwiseAligner
 from Bio.Data.IUPACData import protein_letters_3to1
 
-RUN = "runs_diverse"
+RUN = os.environ.get("RUN_DIR", "runs_diverse")
 POSE_GLOB = {
     "Boltz-2":       "*boltz/**/*_model_*.cif",
     "Chai-1":        "out_chai/pred.model_idx_*.cif",
