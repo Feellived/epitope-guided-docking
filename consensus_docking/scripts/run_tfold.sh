@@ -40,7 +40,7 @@ command -v colabfold_batch >/dev/null || { say "!! colabfold_batch 없음 (env '
 for d in $dirs; do
   [ -d "$d" ] || continue
   base=$(basename "$d"); t=$(echo "${base%_fv}" | tr 'A-Z' 'a-z')
-  if find "$d/msa_$t" -name '*.a3m' 2>/dev/null | grep -q .; then
+  if find "$d/msa_$t" -maxdepth 1 -name '*.a3m' 2>/dev/null | grep -q .; then
     say "skip a3m $base (있음)"; continue
   fi
   say "a3m $base ..."
@@ -58,7 +58,7 @@ python -c "import tfold" 2>/dev/null || say "!! 경고: '$TFOLD_ENV' env에서 t
 for d in $dirs; do
   [ -d "$d" ] || continue
   base=$(basename "$d"); t=$(echo "${base%_fv}" | tr 'A-Z' 'a-z')
-  a3m=$(find "$ROOT/$d/msa_$t" -name '*.a3m' 2>/dev/null | head -1)
+  a3m="$ROOT/$d/msa_$t/A.a3m"; [ -f "$a3m" ] || a3m=$(find "$ROOT/$d/msa_$t" -maxdepth 1 -name '*.a3m' 2>/dev/null | head -1)  # 최종 a3m만(A_env/ 중간파일 제외)
   if [ -z "$a3m" ]; then say "!! $base a3m 없음 → 스킵"; continue; fi
   fasta="$ROOT/$d/tfold_$t.fasta"
   mkdir -p "$ROOT/$d/out_tfold"
