@@ -92,6 +92,9 @@ SOURCES=[
   ("msa_depth","Protenix-base","d143","runs_msad_143","out_protenix/**/*sample*.cif"),
   ("msa_depth","Protenix-base","d8","runs_msad_8","out_protenix/**/*sample*.cif"),
   ("msa_depth","Protenix-base","d1","runs_msad_1","out_protenix/**/*sample*.cif"),
+  ("msa_depth","Chai-1","d1","runs_msad_1","out_chai/**/*.cif"),
+  ("msa_depth","tFold","d8","runs_msad_8","out_tfold/*seed*.pdb"),
+  ("msa_depth","tFold","d1","runs_msad_1","out_tfold/*seed*.pdb"),
   ("haddock","HADDOCK","ab-initio","haddock","run/*seletopclusts*/*.pdb"),
 ]
 def main():
