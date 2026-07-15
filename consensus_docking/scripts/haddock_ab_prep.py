@@ -1,31 +1,47 @@
 #!/usr/bin/env python3
-"""HADDOCK 항체 준비: Kabat CDR active 식별 + 단일사슬 재넘버 → clean PDB + actpass.
-Kabat: H 31-35/50-65/95-102, L 24-34/50-56/89-97 (삽입코드 자동 포함). ANARCI 불필요.
-사용: python haddock_ab_prep.py --target 8SIT --dir haddock/8sit  (biopython)"""
-import argparse, json, os
+"""HADDOCK 항체 준비 (ANARCI): CDR active 식별 + 단일사슬 재넘버 → clean PDB + actpass.
+IMGT CDR = 27-38/56-65/105-117. 어떤 넘버링이든 처리(순차·Kabat·Chothia·나노바디).
+실행: anarci env에서  python haddock_ab_prep.py --dir haddock/8sit
+필요: anarci, biopython."""
+import argparse, os
 from Bio.PDB import PDBParser, PDBIO, Chain, Model, Structure
-KABAT={"H":[(31,35),(50,65),(95,102)], "L":[(24,34),(50,56),(89,97)]}
+from Bio.Data.IUPACData import protein_letters_3to1
+from anarci import run_anarci
+T3TO1={k.upper():v for k,v in protein_letters_3to1.items()}
+IMGT_CDR=[(27,38),(56,65),(105,117)]
+
+def cdr_positions(seq):
+    """ANARCI IMGT → 입력서열 위치(0-based) 중 CDR 집합 + 사슬타입."""
+    res=run_anarci([("q",seq)], scheme="imgt")
+    numbering=res[1]; details=res[2] if len(res)>2 else None
+    if not numbering or numbering[0] is None: return set(),"?"
+    dom,start,end=numbering[0][0]
+    ctype=(details[0][0].get("chain_type","?") if details and details[0] else "?")
+    cdr=set(); pos=start
+    for (num,ins),aa in dom:
+        if aa=="-": continue
+        if any(lo<=num<=hi for lo,hi in IMGT_CDR): cdr.add(pos)
+        pos+=1
+    return cdr,ctype
+
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--run-dir",default="runs_rbd"); ap.add_argument("--target",required=True)
     ap.add_argument("--dir",required=True); ap.add_argument("--segid",default="A"); a=ap.parse_args()
-    d=json.load(open(os.path.join(a.run_dir,a.target.lower(),"chains.json")))
-    ab=d["antibody"]; ab=[ab] if isinstance(ab,str) else [str(x) for x in ab]
-    heavy=ab[0]; light=ab[1] if len(ab)>1 else None
     m=PDBParser(QUIET=True).get_structure("x",os.path.join(a.dir,"antibody.pdb"))[0]
-    ids=[c.id for c in m]
-    nc=Chain.Chain(a.segid); new=1; active=[]
-    for cid in ([heavy]+([light] if light else [])):
-        if cid not in ids: continue
-        ranges=KABAT["H"] if cid==heavy else KABAT["L"]
-        for r in list(m[cid]):
-            if "CA" not in r: continue
-            if any(lo<=r.id[1]<=hi for lo,hi in ranges): active.append(new)
+    nc=Chain.Chain(a.segid); new=1; active=[]; info=[]
+    for ch in m:
+        res=[r for r in ch if "CA" in r]
+        if len(res)<50: continue
+        seq="".join(T3TO1.get(r.get_resname().upper(),"X") for r in res)
+        try: cdr,ctype=cdr_positions(seq)
+        except Exception as e: print(f"  {ch.id} ANARCI 실패: {e}"); cdr,ctype=set(),"ERR"
+        info.append(f"{ch.id}({ctype},{len(res)}res,CDR{len(cdr)})")
+        for i,r in enumerate(res):
+            if i in cdr: active.append(new)
             r.detach_parent(); r.id=(' ',new,' '); nc.add(r); new+=1
     st=Structure.Structure("ab"); md=Model.Model(0); md.add(nc); st.add(md)
     io=PDBIO(); io.set_structure(st); io.save(os.path.join(a.dir,"antibody_clean.pdb"))
     act=sorted(set(active))
     open(os.path.join(a.dir,"antibody.actpass"),"w").write(" ".join(map(str,act))+"\n\n")
-    print(f"{a.target}: CDR active {len(act)}개, 단일사슬 {a.segid} 재넘버(총 {new-1}res) → antibody_clean.pdb, antibody.actpass")
-    print("  active:", act)
+    print(f"{os.path.basename(a.dir)}: {' '.join(info)} | 단일사슬 {a.segid} {new-1}res | CDR active {len(act)} → antibody_clean.pdb, antibody.actpass")
 if __name__=="__main__": main()
