@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MSA-depth 통합 리포트: build_msafree_summary CSV → 모델별 depth 스윕(RBM% + epitope recall).
+"""MSA-depth + HADDOCK 통합 리포트: build_msafree_summary CSV → 모델별 depth 스윕 + HADDOCK(RBM%+recall).
 사용: python scripts/report_msa_depth.py [csv]  (인자 없으면 model/condition 컬럼 있는 최신 *.csv 자동)"""
 import sys, csv, glob
 from collections import defaultdict
@@ -32,12 +32,16 @@ def r2(x):
         return (str(x) or "-")
 
 data = defaultdict(lambda: defaultdict(dict)); eclass = {}
+hadd = {}
 for r in rows:
-    if r.get("experiment") not in ("cofolder", "msa_depth"):
-        continue
+    exp = r.get("experiment")
     m, t, c = r.get("model", ""), r.get("target", "").upper(), r.get("condition", "")
-    data[m][t][c] = (r.get("rbm_frac", ""), r.get("epitope_recall", ""), r.get("n_poses", ""))
-    eclass[t] = r.get("epitope_class", "")
+    if t:
+        eclass[t] = r.get("epitope_class", eclass.get(t, ""))
+    if exp in ("cofolder", "msa_depth"):
+        data[m][t][c] = (r.get("rbm_frac", ""), r.get("epitope_recall", ""), r.get("n_poses", ""))
+    elif exp == "haddock":
+        hadd[t] = (r.get("rbm_frac", ""), r.get("epitope_recall", ""), r.get("n_poses", ""))
 
 MODEL_ORD = ["Boltz-2", "Protenix-base", "tFold", "Chai-1", "AF2-Multimer"]
 TARGET_ORD = ["8SIT", "9ML9", "8SIQ", "9ML8", "8P5M", "9ZDU", "8SDF", "8XSI", "8SIS", "9SBB"]
@@ -57,4 +61,17 @@ for m in models:
                 cells.append(f"{'-':>8}")
         print(f"{t:7}{eclass.get(t,''):11}" + "".join(f"{x:>13}" for x in cells))
     print()
+
+if hadd:
+    print("===== HADDOCK (물리 도킹, depth 없음)   (RBM% / recall) =====")
+    print(f"{'target':7}{'class':11}{'RBM%/recall':>13}{'n':>6}")
+    tgts = [t for t in TARGET_ORD if t in hadd] + [t for t in sorted(hadd) if t not in TARGET_ORD]
+    for t in tgts:
+        rbm, rec, n = hadd[t]
+        print(f"{t:7}{eclass.get(t,''):11}{(pct(rbm)+'/'+r2(rec)):>13}{str(n):>6}")
+    print()
+else:
+    print("(HADDOCK 행 없음 — build_msafree_summary가 haddock/*/run/*seletopclusts*/*.pdb를 못 잡았을 수 있음)\n")
+
 print("주: RBM%↓ + recall↑ = 항원 MSA 감소로 off-hotspot rescue. full(양사슬 MSA)/d143(항체 single)/d8/d1.")
+print("    HADDOCK: RBM%가 낮고 recall 높으면 물리가 학습편향 벗어나 진짜 에피토프 찾음; RBM% 높으면 물리도 hotspot 붕괴.")
