@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """패치별 HADDOCK 제약(ambig) + run.cfg (기존 run.cfg 템플릿 재사용: sampling·run_dir·ambig·select만 교체).
    CDR active(antibody.actpass) ↔ 패치잔기 active(chain B). 사용(haddock3 env):
-   python scripts/make_haddock_patch_restraints.py --dir haddock/8sit --samples 100 --refine 20"""
+   python scripts/make_haddock_patch_restraints.py --dir haddock/8sit --samples 100 --refine 20
+   (2026-07-16: --tolerance 추가 — flexref/emref CNS 정제 5% abort 방지, 기본 50%)"""
 import argparse, glob, os, re, shutil, subprocess
 
 def restraint_cmd(ab_ap, ag_ap):
@@ -13,10 +14,18 @@ def restraint_cmd(ab_ap, ag_ap):
         return ["haddock3-restraints", "active_passive_to_ambig"] + tail
     raise SystemExit("active_passive_to_ambig / haddock3-restraints 둘 다 없음 — HADDOCK3 env 확인(HAD_ENV).")
 
+def _has_param_in_block(text, mod, param):
+    """cfg의 [mod] 블록 안에 param이 이미 있나 (중복 삽입 방지)."""
+    m = re.search(r'\[' + re.escape(mod) + r'\](.*?)(\n\[|\Z)', text, re.S)
+    return bool(m and re.search(r'\b' + re.escape(param) + r'\s*=', m.group(1)))
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True); ap.add_argument("--samples", type=int, default=100)
-    ap.add_argument("--refine", type=int, default=20); a = ap.parse_args()
+    ap.add_argument("--refine", type=int, default=20)
+    ap.add_argument("--tolerance", type=int, default=50,
+                    help="CNS 정제(flexref/emref/rigidbody) 실패 허용 %% (기본 5%%면 소수 실패에 abort)")
+    a = ap.parse_args()
     d = a.dir
     tmpl = os.path.join(d, "run.cfg")
     if not os.path.exists(tmpl):
@@ -45,8 +54,12 @@ def main():
             txt = re.sub(r'\bselect\s*=\s*\d+', 'select = %d' % a.refine, txt)
         elif '[seletop]' in txt:
             txt = txt.replace('[seletop]', '[seletop]\nselect = %d' % a.refine, 1)
+        # CNS 정제 실패 허용치 상향 (flexref/emref/rigidbody 의 '5% 초과 실패 → abort' 방지, 멱등)
+        for mod in ("rigidbody", "flexref", "emref"):
+            if ('[%s]' % mod) in txt and not _has_param_in_block(txt, mod, "tolerance"):
+                txt = txt.replace('[%s]' % mod, '[%s]\ntolerance = %d' % (mod, a.tolerance), 1)
         outcfg = os.path.join(d, f"run_patch_{pi}.cfg")
         open(outcfg, "w").write(txt)
-        print(f"patch_{pi}: {len(resid)}잔기 → {outcfg} (sampling {a.samples}, refine {a.refine})")
+        print(f"patch_{pi}: {len(resid)}잔기 → {outcfg} (sampling {a.samples}, refine {a.refine}, tolerance {a.tolerance}%)")
 
 if __name__ == "__main__": main()
