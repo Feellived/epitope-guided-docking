@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""HADDOCK emref 풀 오라클: 타깃별 전체 emref 포즈를 개별 스캔(클러스터/최고점 무관) →
-   진짜자리 포즈가 풀에 있나 + 있으면 recall·RBM% + 점수순위(HADDOCK score가 얼마나 묻었나).
-   → 진짜자리 풀에 있고 점수순위 나쁨=재랭커 구제가능 / 아예 없음=패치스캔(강제생성) 필요.
-   사용(boltz env, repo루트): python scripts/haddock_pool_oracle.py"""
-import glob, gzip, os, csv
+"""HADDOCK 포즈 풀 오라클: 특정 stage 전체 포즈 개별 스캔 → 진짜자리 포즈 있나 + (emref면)점수순위.
+   --stage 4_emref(기본,정제풀) / 1_rigidbody(넓은샘플, 탐색갭 확인).
+   사용(boltz, repo루트): python scripts/haddock_pool_oracle.py [--stage 1_rigidbody] [--targets "9ZDU 8SIT"]"""
+import argparse, glob, gzip, os, csv
 import numpy as np
 from Bio.PDB import PDBParser
 import build_msafree_summary as B
@@ -34,31 +33,36 @@ def find_score_tsv(rundir):
         try:
             hdr = next(csv.reader(open(f), delimiter="\t"))
             if {"model_name", "score", "cluster_id"} <= set(hdr): return f
-        except Exception:
-            pass
+        except Exception: pass
     return None
 
-print(f"{'target':7}{'class':9}{'pool':6}{'oracle_rec':11}{'#rec>=.3':9}  best-recall 포즈: rec/RBM%/HADDOCKscore(점수순위)")
-print("-"*100)
-for t in B.TARGETS:
-    ni = B.native_info(t)
-    if ni is None: print(f"{t:7} native 없음"); continue
-    rundir = os.path.join("haddock", t.lower(), "run")
-    poses = sorted(glob.glob(os.path.join(rundir, "4_emref", "*.pdb.gz")))
-    tsv = find_score_tsv(rundir); score = {}; srank = {}
-    if tsv:
-        rows = sorted((float(r["score"]), r["model_name"]) for r in csv.DictReader(open(tsv), delimiter="\t"))
-        for i, (sc, mn) in enumerate(rows): score[mn] = sc; srank[mn] = i + 1
-    res = []
-    for p in poses:
-        rr = pose_rec(p, ni)
-        if rr is None: continue
-        res.append((rr[0], rr[1], os.path.basename(p)[:-3]))
-    if not res: print(f"{t:7} 포즈 없음"); continue
-    res.sort(reverse=True)
-    top = res[0]; nhi = sum(1 for r in res if r[0] >= 0.3)
-    mn = top[2]; sc = score.get(mn); rk = srank.get(mn)
-    scstr = f"{sc:.0f}(#{rk}/{len(res)})" if sc is not None else "?"
-    print(f"{t:7}{B.EPICLASS.get(t,''):9}{len(res):<6}{top[0]:<11.2f}{nhi:<9}  {mn}: {top[0]:.2f}/{top[1]*100:.0f}%/{scstr}")
-print("\n주: oracle_rec 높은데 점수순위(#)가 나쁨 = 진짜자리 포즈가 풀에 있으나 HADDOCK점수가 묻음 → 재랭커 구제가능.")
-print("    oracle_rec≈0 = 진짜자리 포즈 자체가 풀에 없음(RBM이 샘플링 독식) → 패치스캔(강제 생성) 필요.")
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--stage", default="4_emref"); ap.add_argument("--targets", default=" ".join(B.TARGETS))
+    a = ap.parse_args()
+    print(f"[stage={a.stage}]  target class  pool  oracle_rec #rec>=.3  best포즈 rec/RBM%/점수(순위)")
+    print("-"*92)
+    for t in a.targets.split():
+        t = t.upper(); ni = B.native_info(t)
+        if ni is None: print(f"{t:7} native 없음"); continue
+        rundir = os.path.join("haddock", t.lower(), "run")
+        poses = sorted(glob.glob(os.path.join(rundir, a.stage, "*.pdb.gz")))
+        score = {}; srank = {}
+        if a.stage.endswith("emref"):
+            tsv = find_score_tsv(rundir)
+            if tsv:
+                rows = sorted((float(r["score"]), r["model_name"]) for r in csv.DictReader(open(tsv), delimiter="\t"))
+                for i, (sc, mn) in enumerate(rows): score[mn] = sc; srank[mn] = i + 1
+        res = []
+        for p in poses:
+            rr = pose_rec(p, ni)
+            if rr is not None: res.append((rr[0], rr[1], os.path.basename(p)[:-3]))
+        if not res: print(f"{t:7} 포즈 없음(stage {a.stage} 확인)"); continue
+        res.sort(reverse=True); top = res[0]; nhi = sum(1 for r in res if r[0] >= 0.3)
+        mn = top[2]; sc = score.get(mn); rk = srank.get(mn)
+        scstr = f"{sc:.0f}(#{rk}/{len(res)})" if sc is not None else "-"
+        print(f"{t:7}{B.EPICLASS.get(t,''):9}{len(res):<6}{top[0]:<11.2f}{nhi:<9}{mn}: {top[0]:.2f}/{top[1]*100:.0f}%/{scstr}")
+    print("\n주: 1_rigidbody서 진짜자리 있음(oracle 높음)+emref서 낮았으면=점수컷에 잘림(seletop↑로 부활).")
+    print("    1_rigidbody서도 oracle≈0=진짜 탐색 갭 → 패치스캔 필요.")
+
+if __name__ == "__main__": main()
