@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""HADDOCK 포즈 DockQ: recall 상위 K개 포즈의 DockQ(near-native 검증). recall='어디에', DockQ='얼마나 진짜같은가'.
-   항체 H+L 병합 DockQ(merge_dockq 방식). 사용(boltz env, DockQ 설치필요):
-   python scripts/haddock_dockq.py [--stage 4_emref|1_rigidbody] [--topk 15] [--targets "..."]"""
-import argparse, glob, gzip, json, os, re, subprocess, tempfile
+"""HADDOCK 포즈 DockQ: recall 상위 K개 포즈의 DockQ(near-native 검증) + CSV 저장.
+   항체 H+L 병합. 사용(boltz, DockQ 설치): python scripts/haddock_dockq.py [--stage 4_emref|1_rigidbody] [--topk 15]"""
+import argparse, csv, glob, gzip, json, os, re, subprocess, tempfile
 import numpy as np
 from Bio.PDB import PDBParser, PDBIO
 from Bio.PDB.Structure import Structure
@@ -65,10 +64,14 @@ def native_merged(t, td):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", default="4_emref"); ap.add_argument("--topk", type=int, default=15)
-    ap.add_argument("--targets", default=" ".join(B.TARGETS)); a = ap.parse_args()
+    ap.add_argument("--targets", default=" ".join(B.TARGETS)); ap.add_argument("--out", default=None)
+    a = ap.parse_args()
+    skey = "emref" if "emref" in a.stage else ("rigidbody" if "rigidbody" in a.stage else a.stage)
+    out = a.out or f"results/haddock_dockq_{skey}.csv"
     print(f"[stage={a.stage}, DockQ on top{a.topk} by recall]")
     print(f"{'target':7}{'class':9}{'best_DockQ':11}{'(recall)':10}{'#DockQ>=.23'}")
     print("-"*52)
+    rows = []
     for t in a.targets.split():
         t = t.upper(); ni = B.native_info(t)
         if ni is None: print(f"{t:7} native 없음"); continue
@@ -94,7 +97,13 @@ def main():
             bs = f"{bq:.3f}" if bq is not None else "  -  "
             rs = f"({brec:.2f})" if brec is not None else "-"
             print(f"{t:7}{B.EPICLASS.get(t,''):9}{bs:>10} {rs:>9}   {nhit}/{ndone}")
-    print("\n주: best_DockQ≥0.23=HADDOCK 풀에 진짜 near-native 존재(생성 확정). ≈0=recall 겹쳤으나 기하 틀림(우연).")
-    print("    0.23 accept / 0.49 medium / 0.80 high. --stage 1_rigidbody=raw(미정제) 풀도 확인.")
+            rows.append({"target": t, "epitope_class": B.EPICLASS.get(t, ""), "stage": skey,
+                         "best_dockq": f"{bq:.3f}" if bq is not None else "", "best_recall": f"{brec:.2f}" if brec is not None else "",
+                         "n_hit": nhit, "n_scored": ndone})
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    with open(out, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["target", "epitope_class", "stage", "best_dockq", "best_recall", "n_hit", "n_scored"])
+        w.writeheader(); w.writerows(rows)
+    print(f"\n→ {out} 저장 ({len(rows)}행). 스코어카드: python scripts/haddock_scorecard.py")
 
 if __name__ == "__main__": main()
