@@ -15,9 +15,22 @@ GPU 0. Biopython+numpy+scipy. PLM/PAE 없음(1차 기하·물리 피처만).
 """
 import argparse, glob, gzip, json, os, re, csv, tempfile, sys, math
 import numpy as np
-from scipy.spatial import cKDTree
+try:
+    from scipy.spatial import cKDTree; _SCIPY=True
+except Exception:
+    _SCIPY=False                      # scipy 없으면 numpy 폴백(설치 불필요)
 import build_msafree_summary as B
 import haddock_dockq as HD           # load_gz, write_merged, dockq, native_merged (runs_rbd 기반)
+
+def neigh(agX, abX, r):
+    """각 ag atom에 대해 반경 r 내 ab atom index 리스트. scipy 있으면 cKDTree, 없으면 numpy."""
+    if len(abX)==0: return [[] for _ in agX]
+    if _SCIPY:
+        return cKDTree(abX).query_ball_point(agX, r)
+    out=[]
+    for i in range(len(agX)):
+        out.append(list(np.where(np.linalg.norm(abX-agX[i],axis=1)<r)[0]))
+    return out
 
 CACHE = "results/rerank_pool.csv"
 OUT   = "results/rerank_pilot_results.csv"
@@ -97,9 +110,8 @@ def features(model, ag_id, ab_ids, fast):
     abCA,abCB,abRN,abX,abEL,abRES = side(model, ab_ids)
     f = {}
     if len(agX)==0 or len(abX)==0: return None
-    tree = cKDTree(abX)
     # 접촉(5Å)
-    nb = tree.query_ball_point(agX, CUT)
+    nb = neigh(agX, abX, CUT)
     n_atom=0; cres=set(); ag_if=set(); ab_if=set(); pair_res=set()
     for i,pl in enumerate(nb):
         for j in pl:
@@ -109,7 +121,7 @@ def features(model, ag_id, ab_ids, fast):
     f["n_iface_ag"]=len(ag_if); f["n_iface_ab"]=len(ab_if)
     f["contact_density"]= n_atom/max(1,len(pair_res))
     # clash (vdw sum - 0.4)
-    nb2 = tree.query_ball_point(agX, 3.8)
+    nb2 = neigh(agX, abX, 3.8)
     ncl=0; sev=0.0
     for i,pl in enumerate(nb2):
         vi=VDW.get(agEL[i],1.7)
