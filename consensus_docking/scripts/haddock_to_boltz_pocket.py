@@ -49,6 +49,7 @@ def main():
     ap.add_argument("--max-patches", type=int, default=8)
     ap.add_argument("--max-distance", type=float, default=6.0)
     ap.add_argument("--min-contacts", type=int, default=4)
+    ap.add_argument("--soft", action="store_true", help="force:false(소프트 조건화). 기본=force:true(패치로 실제 steering; Boltz #418 회피)")
     ap.add_argument("--outdir", default="runs_guided")
     a = ap.parse_args()
     for t in a.targets.split():
@@ -81,7 +82,7 @@ def main():
                 L += ["  - protein:", f"      id: {c['id']}", f'      sequence: "{c["seq"]}"',
                       f"      msa: {a3m if c['id'] == ag else 'empty'}"]
             L += ["constraints:", "  - pocket:", f"      binder: {binder}", "      contacts:", contacts,
-                  f"      max_distance: {a.max_distance}"]
+                  f"      max_distance: {a.max_distance}", f"      force: {'false' if a.soft else 'true'}"]
             open(os.path.join(outd, f"boltz_{t.lower()}_patch{k}.yaml"), "w").write("\n".join(L) + "\n")
         print(f"{t}: 클러스터 {len(reps)} → 고유 패치 {len(patches)} YAML (binder={binder}, 항원={ag})")
 
