@@ -3,7 +3,7 @@
 """재랭커 타당성 파일럿 (Exp3, RBD-10 pool) — make-or-break go/no-go.
 질문: 이미 디스크에 있는 pool(co-folder blind + 감소-MSA + HADDOCK raw)에서, native 없이 좌표만으로 뽑은
 값싼 계면 피처로 blind top-1 pose를 고르면 ipTM/단일모델보다 낫고 oracle에 근접하는가?
-GPU 0. Biopython+numpy+scipy. PLM/PAE 없음(1차 기하·물리 피처만).
+GPU 0. Biopython+numpy(+scipy 선택). 기하·물리 피처 + min-edge PAE(Boltz·AF2, PAE가 디스크에 있을 때). PLM 임베딩은 2차.
 
 실행(cwd = repo/consensus_docking, run_phase0.sh와 동일):
   # 1) pool 피처+DockQ 라벨 캐시 생성(느림, resumable) — 먼저 --fast로 빠르게 훑고, 이후 전체
@@ -105,7 +105,88 @@ def side(model, ids):
         for a,e,rr in zip(at,el,ares): X.append(a); EL.append(e); RES.append((cid,rr))
     return CA, CB, RN, (np.array(X) if X else np.zeros((0,3))), EL, RES
 
-def features(model, ag_id, ab_ids, fast):
+def load_pae(model_name, path):
+    """모델별 PAE 행렬 로드(N_tok×N_tok). Boltz npz / ColabFold scores json. 실패 시 None."""
+    d=os.path.dirname(path)
+    try:
+        if model_name=="af2m":
+            m=re.search(r"rank_(\d+)", os.path.basename(path)); rk=m.group(1) if m else ""
+            cands=sorted(glob.glob(os.path.join(d,"*scores*rank*"+rk+"*.json"))) or sorted(glob.glob(os.path.join(d,"*scores*.json")))
+            for c in cands:
+                j=json.load(open(c))
+                for k in ("pae","predicted_aligned_error"):
+                    if k in j:
+                        a=np.asarray(j[k],float)
+                        if a.ndim==2 and a.shape[0]==a.shape[1]: return a
+        elif model_name=="boltz":
+            m=re.search(r"model_(\d+)", os.path.basename(path)); sd=m.group(1) if m else ""
+            pats=[f"pae*model_{sd}*.npz",f"*pae*model_{sd}*.npz",f"pae*model_{sd}*.npy","*pae*.npz"]
+            for base in (d, os.path.dirname(d)):
+                for pat in pats:
+                    for c in sorted(glob.glob(os.path.join(base,pat))):
+                        obj=np.load(c, allow_pickle=True)
+                        arrs=[np.asarray(obj[k],float) for k in obj.files] if hasattr(obj,"files") else [np.asarray(obj,float)]
+                        for a in arrs:
+                            if a.ndim==2 and a.shape[0]==a.shape[1]: return a
+    except Exception:
+        return None
+    return None
+
+def load_iptm(model_name, path):
+    """per-pose global ipTM (라벨 아님, 모델 자기신뢰도) — baseline·공통집합 정의용. 실패 시 None."""
+    d=os.path.dirname(path); bn=os.path.basename(path)
+    try:
+        if model_name=="boltz":
+            m=re.search(r"model_(\d+)",bn); sd=m.group(1) if m else ""
+            for c in sorted(glob.glob(os.path.join(d,f"confidence*model_{sd}*.json")))+sorted(glob.glob(os.path.join(d,"confidence*.json"))):
+                j=json.load(open(c))
+                for k in ("iptm","complex_iptm"):
+                    if k in j: return float(j[k])
+        elif model_name=="af2m":
+            m=re.search(r"rank_(\d+)",bn); rk=m.group(1) if m else ""
+            for c in sorted(glob.glob(os.path.join(d,f"*scores*rank*{rk}*.json")))+sorted(glob.glob(os.path.join(d,"*scores*.json"))):
+                j=json.load(open(c))
+                if "iptm" in j: return float(j["iptm"])
+        elif model_name=="chai":
+            m=re.search(r"idx_(\d+)",bn); sd=m.group(1) if m else ""
+            for c in sorted(glob.glob(os.path.join(d,f"scores*idx_{sd}*.npz")))+sorted(glob.glob(os.path.join(d,"scores*.npz"))):
+                o=np.load(c,allow_pickle=True)
+                if "iptm" in getattr(o,"files",[]): return float(np.asarray(o["iptm"]).mean())
+        elif model_name=="protenix":
+            m=re.search(r"sample_(\d+)",bn); sd=m.group(1) if m else ""
+            for c in sorted(glob.glob(os.path.join(d,f"*summary_confidence*sample_{sd}*.json")))+sorted(glob.glob(os.path.join(d,"*summary_confidence*.json"))):
+                j=json.load(open(c))
+                if "iptm" in j: return float(j["iptm"])
+        elif model_name=="tfold":
+            with open(path) as fh:
+                for line in fh:
+                    if not (line.startswith("REMARK") or line.startswith("HEADER") or line.startswith("TITLE")): break
+                    if "iptm" in line.lower():
+                        mm=re.search(r"[-+]?\d*\.\d+",line)
+                        if mm: return float(mm.group())
+    except Exception:
+        return None
+    return None
+
+def token_ranges(model, ag_id, ab_ids):
+    """structure 사슬 순서대로 CA 잔기에 토큰 인덱스 부여 → (ag_tok, ab_tok, n_total)."""
+    ag=[]; ab=[]; idx=0
+    for ch in model:
+        n=sum(1 for r in ch if r.id[0]==' ' and 'CA' in r and T3.get(r.get_resname().upper()))
+        rng=list(range(idx,idx+n)); idx+=n
+        if ch.id==ag_id: ag+=rng
+        elif ch.id in ab_ids: ab+=rng
+    return ag, ab, idx
+
+def min_edge_pae(pae, ag_tok, ab_tok, topn=10):
+    """계면 cross block(ag×ab, ab×ag)에서 가장 작은 topn PAE 평균(낮을수록 신뢰). = min-edge PAE 근사."""
+    if pae is None or not ag_tok or not ab_tok: return None
+    if max(max(ag_tok),max(ab_tok))>=pae.shape[0]: return None
+    blk=np.concatenate([pae[np.ix_(ag_tok,ab_tok)].ravel(), pae[np.ix_(ab_tok,ag_tok)].ravel()])
+    if blk.size==0: return None
+    return float(np.sort(blk)[:min(topn,blk.size)].mean())
+
+def features(model, ag_id, ab_ids, fast, model_name="", path="", with_pae=True):
     agCA,agCB,agRN,agX,agEL,agRES = side(model,[ag_id])
     abCA,abCB,abRN,abX,abEL,abRES = side(model, ab_ids)
     f = {}
@@ -197,11 +278,20 @@ def features(model, ag_id, ab_ids, fast):
             f["bsa_total"]=""
     else:
         f["bsa_total"]=""
+    # min-edge PAE (Boltz·AF2만; PAE 디스크에 있을 때. 실패=빈값 → 기하 파일럿 무영향)
+    f["min_edge_pae"]=""
+    if with_pae and model_name in ("boltz","af2m"):
+        pae=load_pae(model_name, path)
+        if pae is not None:
+            agt,abt,ntok=token_ranges(model, ag_id, ab_ids)
+            if pae.shape[0]==ntok:                          # 토큰수=잔기수 일치할 때만(순서 가정 가드)
+                v=min_edge_pae(pae, agt, abt)
+                if v is not None: f["min_edge_pae"]=v
     return f
 
 FEATCOLS=["n_contact_atoms","n_contact_res","n_iface_ag","n_iface_ab","contact_density","n_clash",
  "clash_severity","frac_hydrophobic","frac_charged","hydrophobic_complementarity","charge_complementarity",
- "planarity_rmsd","iface_Rg","iface_clustering","knn_edge_len_mean","bsa_total"]
+ "planarity_rmsd","iface_Rg","iface_clustering","knn_edge_len_mean","bsa_total","min_edge_pae"]
 
 def dockq_label(model, ag_id, ab_ids, natm, td):
     mp=os.path.join(td,"pose.pdb"); HD.write_merged(model, ag_id, ab_ids, mp)
@@ -214,7 +304,7 @@ def cmd_build(a):
     if os.path.exists(CACHE):
         for r in csv.DictReader(open(CACHE)):
             done.add((r["target"], r["path"]))
-    hdr=["target","epitope_class","family","model","seed","path","dockq"]+FEATCOLS
+    hdr=["target","epitope_class","family","model","seed","path","dockq","iptm"]+FEATCOLS
     write_hdr = not os.path.exists(CACHE)
     fh=open(CACHE,"a",newline=""); w=csv.DictWriter(fh,fieldnames=hdr)
     if write_hdr: w.writeheader()
@@ -241,11 +331,13 @@ def cmd_build(a):
                     m=load_pose(p,kind)
                     aid,_,_,_,_=B.best(m, ni["ag_seq"]); abids=[c.id for c in m if c.id!=aid]
                     if not abids: continue
-                    feat=features(m, aid, abids, a.fast)
+                    feat=features(m, aid, abids, a.fast, model, p, not a.no_pae)
                     if feat is None: continue
                     q=dockq_label(m, aid, abids, natm, td)
+                    ip=load_iptm(model, p)
                     row={"target":t,"epitope_class":B.EPICLASS.get(t,""),"family":fam,"model":model,
-                         "seed":sd,"path":p,"dockq":(f"{q:.4f}" if q is not None else "")}
+                         "seed":sd,"path":p,"dockq":(f"{q:.4f}" if q is not None else ""),
+                         "iptm":(f"{ip:.4f}" if ip is not None else "")}
                     row.update({k:(feat.get(k,"")) for k in FEATCOLS})
                     w.writerow(row); fh.flush(); n_new+=1; done.add((t,p))
                 except Exception as e:
@@ -254,113 +346,117 @@ def cmd_build(a):
     fh.close(); print(f"→ {CACHE}")
 
 # =============================== ANALYZE ===============================
-def zscore(v):
-    v=np.array(v,float); m=v[~np.isnan(v)]
-    if len(m)<2 or m.std()==0: return np.zeros(len(v))
-    return np.nan_to_num((v-m.mean())/m.std())
+def _fv(x,k):
+    try: return float(x[k]) if x.get(k,"")!="" else float('nan')
+    except: return float('nan')
+def _ci(diffs):
+    """paired diff bootstrap 95% CI of mean(oracle-method) (deterministic seed)."""
+    d=np.array([x for x in diffs if isinstance(x,float) and not math.isnan(x)],float)
+    if len(d)<3: return "-"
+    rng=np.random.RandomState(0); mu=[rng.choice(d,len(d),replace=True).mean() for _ in range(2000)]
+    return f"[{np.percentile(mu,2.5):.2f},{np.percentile(mu,97.5):.2f}]"
+# 단일피처 (표시명, 컬럼, 부호) — 부호=물리 prior 고정(튜닝 DOF 0). PAE 최우선.
+SINGLE=[("min_pae","min_edge_pae",-1),("contacts","n_contact_res",+1),("bsa","bsa_total",+1),
+        ("neg_clash","clash_severity",-1),("clustering","iface_clustering",+1),("hyd_compl","hydrophobic_complementarity",+1)]
+def _pick(rs,col,sign):
+    v=np.array([_fv(x,col) for x in rs])
+    if np.all(np.isnan(v)): return float('nan')
+    dq=np.array([float(x["dockq"]) for x in rs]); return float(dq[int(np.nanargmax(sign*v))])
 
-def load_summary_iptm():
-    """results/summary.csv → {(target,model,seed): global_iptm}. 없거나 커버 안되면 {}."""
-    p="results/summary.csv"
-    if not os.path.exists(p): return {}
-    d={}
-    for r in csv.DictReader(open(p)):
-        try:
-            key=(r.get("target","").upper(), r.get("model","").lower(), int(float(r.get("seed",-1))))
-            g=r.get("global_iptm","")
-            if g not in ("","nan","NaN"): d[key]=float(g)
-        except Exception: continue
-    return d
-
-MODEL_ALIAS={"boltz":"boltz-2","chai":"chai-1","protenix":"protenix-base","af2m":"af2-multimer","tfold":"tfold-ag"}
+def _report(title, rec, methods, ref, orc_key):
+    print(f"\n{title}")
+    orc=np.array(rec[orc_key],float); ov=orc[~np.isnan(orc)]
+    n_o49=int(np.sum(ov>=0.49)); n_o23=int(np.sum(ov>=0.23))
+    refarr=np.array(rec[ref],float) if ref in rec else None
+    print(f"{'method':18}{'mTop1':8}{'@.49':6}{'@.23':6}{'Regret':8}{'Reg95CI':14}{'Win@.49':9}{'HitOrc@.49'}")
+    for m in methods:
+        arr=np.array(rec[m],float); valid=~np.isnan(arr)
+        if valid.sum()==0: continue
+        av=arr[valid]; s49=int(np.sum(av>=0.49)); s23=int(np.sum(av>=0.23))
+        mo=valid & ~np.isnan(orc); diffs=list(orc[mo]-arr[mo])
+        rg=f"{np.mean(diffs):.3f}" if mo.sum() else "-"; ci=_ci(diffs) if m!=orc_key else "-"
+        hit=int(np.sum((arr[mo]>=0.49)&(orc[mo]>=0.49)))
+        if refarr is not None and m not in (ref,orc_key):
+            w=valid & ~np.isnan(refarr); winr=f"{int(np.sum(arr[w]>refarr[w]+1e-6))}/{int(w.sum())}" if w.sum() else "-"
+        else: winr="-"
+        print(f"{m:18}{np.nanmean(arr):<8.3f}{s49:<6}{s23:<6}{rg:<8}{ci:<14}{winr:<9}{hit}/{n_o49}")
 
 def cmd_analyze(a):
     if not os.path.exists(CACHE): sys.exit(f"{CACHE} 없음 — 먼저 build 실행")
     rows=[r for r in csv.DictReader(open(CACHE)) if r["dockq"] not in ("","nan")]
     by={}
     for r in rows: by.setdefault(r["target"],[]).append(r)
-    iptm=load_summary_iptm()
-    # 무학습 스코어 정의 (물리 prior; 값싼 조합). z는 타깃 내 정규화.
-    def combo_score(rs):
-        def col(k): return [float(x[k]) if x.get(k,"")!="" else np.nan for x in rs]
-        z=lambda k: zscore(col(k))
-        s = z("n_contact_res") + z("hydrophobic_complementarity") + z("charge_complementarity") \
-            + z("iface_clustering") - 2.0*z("clash_severity") - 0.5*z("knn_edge_len_mean")
-        if any(x.get("bsa_total","")!="" for x in rs): s = s + z("bsa_total")
+    from collections import Counter
+    print("=== pool 구성(타깃별 total pose · ipTM 있는 pose) ===")
+    for t in sorted(by):
+        rs=by[t]; nip=sum(1 for x in rs if not math.isnan(_fv(x,"iptm")))
+        fam=Counter(x["family"] for x in rs)
+        print(f"  {t:6} total {len(rs):4}  ipTM {nip:4} | "+" ".join(f"{k}:{v}" for k,v in sorted(fam.items())))
+
+    # ===== 분석 A: 공통 후보집합(ipTM 존재 pose=co-folder) — PRIMARY =====
+    methsA=[nm for nm,_,_ in SINGLE]+["iptm_pick","protenix_ownIptm","ORACLE"]
+    recA={m:[] for m in methsA}
+    for t in sorted(by):
+        common=[x for x in by[t] if not math.isnan(_fv(x,"iptm"))]
+        if not common:
+            for m in methsA: recA[m].append(float('nan'))
+            continue
+        dqc=np.array([float(x["dockq"]) for x in common])
+        recA["ORACLE"].append(float(dqc.max()))
+        recA["iptm_pick"].append(_pick(common,"iptm",+1))
+        for nm,col,sg in SINGLE: recA[nm].append(_pick(common,col,sg))
+        prot=[x for x in common if x["model"]=="protenix"]
+        recA["protenix_ownIptm"].append(_pick(prot,"iptm",+1) if prot else float('nan'))
+    _report(f"### 분석 A — 공통집합(ipTM 존재 co-folder pose) head-to-head [PRIMARY · n={len(by)}] ###",
+            recA, methsA, ref="iptm_pick", orc_key="ORACLE")
+    best=None
+    for nm,_,_ in SINGLE:
+        arr=np.array(recA[nm],float); ref=np.array(recA["iptm_pick"],float)
+        w=~np.isnan(arr)&~np.isnan(ref); wins=int(np.sum(arr[w]>ref[w]+1e-6))
+        if best is None or wins>best[1]: best=(nm,wins,int(w.sum()))
+    print(f"\n★ PRIMARY 판정 = 최고 단일피처 '{best[0]}' 의 Win-vs-ipTM@.49 = {best[1]}/{best[2]} (부호 고정=튜닝 DOF 0)")
+    print("   → 크고 robust(Regret CI가 0 밑, LOTO 안정)하면 GO: 값싼 계면신호가 망가진 ipTM을 이김.")
+
+    # ===== 분석 B: 확장 pool(전체) — SECONDARY(다른 질문: pool 풍부화 이득) =====
+    def combo_unit(rs):   # 단위가중(±1), 물리 prior 부호만 = exploratory(판정 아님)
+        def z(col):
+            v=np.array([_fv(x,col) for x in rs]); m=v[~np.isnan(v)]
+            return np.zeros(len(v)) if len(m)<2 or m.std()==0 else np.nan_to_num((v-m.mean())/m.std())
+        s=z("n_contact_res")+z("hydrophobic_complementarity")+z("charge_complementarity")+z("iface_clustering")-z("clash_severity")
+        if any(x.get("bsa_total","")!="" for x in rs): s=s+z("bsa_total")
+        if any(x.get("min_edge_pae","")!="" for x in rs): s=s-z("min_edge_pae")
         return s
-    SINGLE={"contacts":("n_contact_res",+1),"neg_clash":("clash_severity",-1),
-            "bsa":("bsa_total",+1),"clustering":("iface_clustering",+1),"hyd_compl":("hydrophobic_complementarity",+1)}
-    tiers=[0.23,0.49,0.80]
-    methods=["reranker_combo"]+list(SINGLE)+["iptm_pick","protenix_ceiling","random_mean","ORACLE"]
-    agg={mth:{"top1":[], "win_iptm":[]} for mth in methods}
-    perrow=[]; iptm_cov=0
-    print(f"\n{'target':7}{'class':10}{'#pose':6}{'oracle':7}{'combo':7}{'iptm':7}{'protenix':9}{'rand':6}")
-    print("-"*60)
-    for t,rs in sorted(by.items()):
-        dq=np.array([float(x["dockq"]) for x in rs])
-        orc=float(dq.max())
-        # combo
-        cs=combo_score(rs); combo_dq=float(dq[int(np.argmax(cs))])
-        # single-feature
-        sing={}
-        for name,(col,sign) in SINGLE.items():
-            vals=np.array([float(x[col]) if x.get(col,"")!="" else np.nan for x in rs])
-            if np.all(np.isnan(vals)): sing[name]=np.nan; continue
-            idx=int(np.nanargmax(sign*vals)); sing[name]=float(dq[idx])
-        # iptm-pick (co-folder만, summary 커버 시)
-        ip=[]
-        for x in rs:
-            k=(t, MODEL_ALIAS.get(x["model"],x["model"]), int(float(x["seed"])) if x["seed"] not in("","-1") else -1)
-            ip.append(iptm.get(k, np.nan))
-        ip=np.array(ip); iptm_dq=float(dq[int(np.nanargmax(ip))]) if not np.all(np.isnan(ip)) else np.nan
-        # best single model (protenix) = protenix pose 중 최고 DockQ (모델 천장)
-        prot=[float(x["dockq"]) for x in rs if x["model"]=="protenix"]
-        prot_dq=max(prot) if prot else np.nan
-        rand=float(dq.mean())
-        vals={"reranker_combo":combo_dq,"iptm_pick":iptm_dq,"protenix_ceiling":prot_dq,
-              "random_mean":rand,"ORACLE":orc}; vals.update(sing)
-        if not math.isnan(iptm_dq): iptm_cov+=1
-        for mth in methods:
-            v=vals.get(mth,np.nan); agg[mth]["top1"].append(v)
-            if mth!="ORACLE" and not math.isnan(iptm_dq) and not (isinstance(v,float) and math.isnan(v)):
-                agg[mth]["win_iptm"].append(1 if v>iptm_dq+1e-6 else 0)
-        print(f"{t:7}{B.EPICLASS.get(t,''):10}{len(rs):<6}{orc:<7.2f}{combo_dq:<7.2f}"
-              f"{(f'{iptm_dq:.2f}' if not math.isnan(iptm_dq) else '-'):<7}{(f'{prot_dq:.2f}' if not math.isnan(prot_dq) else '-'):<9}{rand:<6.2f}")
-        perrow.append({"target":t,"n_pose":len(rs),"oracle":f"{orc:.3f}","combo":f"{combo_dq:.3f}",
-                       "iptm":("" if math.isnan(iptm_dq) else f"{iptm_dq:.3f}"),
-                       "protenix":("" if math.isnan(prot_dq) else f"{prot_dq:.3f}")})
-    # 집계
-    if iptm_cov==0:
-        print("\n⚠️ ipTM baseline 미커버 — results/summary.csv에 이 RBD-10 타깃(seed 매칭)이 없음.")
-        print("   → 판정은 ORACLE·단일모델·random 대비로 하고, ipTM 비교는 별도(summary.csv 세트/키 확인 필요).")
-    print(f"\n=== 집계 (n={len(by)} 타깃) ===")
-    orc_arr=np.array(agg["ORACLE"]["top1"],float)
-    n_orc23=int(np.sum(orc_arr>=0.23))            # oracle이 acceptable 가능한 타깃 수(=선택 상한)
-    print(f"{'method':20}{'meanTop1':10}{'@.23':6}{'@.49':6}{'@.80':6}{'Regret':8}{'HitOrc@.23':12}{'WinVsipTM'}")
-    for mth in methods:
-        arr=np.array(agg[mth]["top1"],float); valid=~np.isnan(arr)
-        if valid.sum()==0: continue
-        t1=arr[valid]; succ={tt:int(np.sum(t1>=tt)) for tt in tiers}
-        if mth=="ORACLE": rg="0.000"
-        else:
-            m=valid & ~np.isnan(orc_arr)
-            rg=f"{float(np.mean(orc_arr[m]-arr[m])):.3f}" if m.sum() else "-"     # NaN 타깃 제외한 평균 regret
-        hit=int(np.sum((arr>=0.23)&(orc_arr>=0.23)))                              # Hit-Oracle@.23 분자
-        win=agg[mth]["win_iptm"]; winr=f"{sum(win)}/{len(win)}" if win else "-"
-        print(f"{mth:20}{t1.mean():<10.3f}{succ[0.23]:<6}{succ[0.49]:<6}{succ[0.80]:<6}{rg:<8}{f'{hit}/{n_orc23}':<12}{winr}")
+    methsB=["combo_unit","min_pae","strat_random","ORACLE"]
+    recB={m:[] for m in methsB}; rngB=np.random.RandomState(0)
+    for t in sorted(by):
+        rs=by[t]; dq=np.array([float(x["dockq"]) for x in rs])
+        recB["ORACLE"].append(float(dq.max()))
+        recB["combo_unit"].append(float(dq[int(np.argmax(combo_unit(rs)))]))
+        recB["min_pae"].append(_pick(rs,"min_edge_pae",-1))
+        fams={}
+        for i,x in enumerate(rs): fams.setdefault(x["family"],[]).append(i)
+        fk=list(fams); picks=[dq[rngB.choice(fams[fk[rngB.randint(len(fk))]])] for _ in range(200)]
+        recB["strat_random"].append(float(np.mean(picks)))
+    _report(f"### 분석 B — 확장 pool 전체(co-folder+감소MSA+HADDOCK) [SECONDARY] ###",
+            recB, methsB, ref="strat_random", orc_key="ORACLE")
+
     with open(OUT,"w",newline="") as f:
-        w=csv.DictWriter(f,fieldnames=["target","n_pose","oracle","combo","iptm","protenix"]); w.writeheader(); w.writerows(perrow)
+        w=csv.writer(f); cols=sorted(by); w.writerow(["set","method"]+cols)
+        for m in methsA: w.writerow(["A",m]+[("" if math.isnan(v) else f"{v:.3f}") for v in recA[m]])
+        for m in methsB: w.writerow(["B",m]+[("" if math.isnan(v) else f"{v:.3f}") for v in recB[m]])
     print(f"\n→ {OUT}")
-    print("판정: combo(무학습 물리 재랭커) succ@.49·HitOrc·Regret가 random/단일모델을 이기고 ORACLE에 근접하면 GO(재랭커 값어치).")
-    print("      ipTM 커버되면 Win-vs-ipTM이 '망가진 선택기를 이긴다'의 직접 증거. 단일피처(contacts/neg_clash/bsa)가 이미 이기면 그 신호가 핵심.")
-    print("      못 이기면 기하피처 부족 → PLM 임베딩·min-edge PAE로 확장 필요(2차).")
-    print("정직: DockQ=평가전용 라벨(피처·선택 미사용). n=10 사례(통계 아님). combo 가중치=물리 prior(학습 아님). protenix_ceiling=Protenix pose 중 최댓값(천장).")
+    print("판정 규율(정직):")
+    print(" • PRIMARY = 분석A 공통집합서 '최고 단일피처'(고정부호, 튜닝0)가 ipTM을 이기나(Win@.49 + Regret CI). combo 아님.")
+    print(" • min_pae(Boltz·AF2 PAE 있을 때)가 최강 예상(초안 근거). 물리피처는 PAE 없는 pool(tFold/HADDOCK) 보완.")
+    print(" • n=10 → 큰·robust 효과만 GO. NO-GO는 underpowered(음성 무정보) — 사전등록 더 큰 셋으로 진행이 GO의 뜻.")
+    print(" • HADDOCK=ab-initio(CDR active+항원 표면 passive, native 에피토프 restraint 없음)=blind. min-DockQ=선택 상한.")
+    print(" • DockQ/oracle=평가 라벨(피처·선택 미사용). ipTM=모델 자기신뢰도. protenix_ownIptm=실전 단일모델 baseline / ORACLE=상한.")
 
 if __name__=="__main__":
     ap=argparse.ArgumentParser()
     sub=ap.add_subparsers(dest="cmd", required=True)
     b=sub.add_parser("build"); b.add_argument("--targets",default=""); b.add_argument("--fast",action="store_true")
-    b.add_argument("--limit-per-source",type=int,default=0)
+    b.add_argument("--limit-per-source",type=int,default=0); b.add_argument("--no-pae",action="store_true")
     an=sub.add_parser("analyze")
     a=ap.parse_args()
     if a.cmd=="build": cmd_build(a)
