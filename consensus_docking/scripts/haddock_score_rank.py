@@ -25,7 +25,7 @@
 사용(boltz env, repo 루트 consensus_docking, DockQ 설치):
   python scripts/haddock_score_rank.py --targets "8P5M 8SDF 8SIQ 8SIS 8SIT 8XSI 9ML8 9ML9 9SBB 9ZDU"
   (resumable: 포즈별 DockQ를 results/haddock_score_rank_cache.csv 에 캐시)"""
-import argparse, csv, glob, os, tempfile
+import argparse, csv, glob, os, shutil, sys, tempfile
 from collections import defaultdict
 import build_msafree_summary as B
 import haddock_dockq as HD
@@ -106,6 +106,8 @@ def main():
     ap.add_argument("--cache", default="results/haddock_score_rank_cache.csv")
     ap.add_argument("--limit", type=int, default=0, help=">0이면 타깃당 포즈 수 제한(스모크용, best-score 우선)")
     a = ap.parse_args()
+    if shutil.which("DockQ") is None:   # silent 전부-None 방지: DockQ 없으면 즉시 중단
+        sys.exit("✗ DockQ가 PATH에 없음 — `conda activate boltz` 후 `which DockQ` 확인하고 실행하세요.")
     os.makedirs("results", exist_ok=True)
     cache = load_cache(a.cache)
     cf = open(a.cache, "a", newline=""); cw = csv.writer(cf)
@@ -150,7 +152,7 @@ def main():
             data = []   # (model_name, score, cid, dockq)
             done = cache.get(t, {})
             for i, (mn, sc, cid) in enumerate(recs):
-                if mn in done:
+                if mn in done and done[mn] is not None:   # None-캐시(과거 실패)는 자동 재계산
                     q = done[mn]
                 else:
                     pose = os.path.join(emdir, mn + ".gz")
