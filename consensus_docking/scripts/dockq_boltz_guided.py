@@ -23,6 +23,7 @@ def best_dockq(poses, ni, natm, td):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--targets", default="8XSI 9SBB 8SIS 9ML8 8SDF 8SIT 9ML9")
+    ap.add_argument("--guided-dir", default="runs_guided", help="guided 결과 폴더(변형 실험이면 예: runs_guided_top20u)")
     ap.add_argument("--out", default="results/dockq_boltz_guided.csv")
     a = ap.parse_args()
     print(f"{'target':7}{'class':11}{'blind_d143':11}{'guided_best':12}{'diff':>8}  #patch")
@@ -35,7 +36,7 @@ def main():
             natm = native_merged(t, td)
             if natm is None: print(f"{t:7} native merge 실패"); continue
             blind = sorted(glob.glob(f"runs_msad_143/{t.lower()}/results_boltz/**/*_model_*.cif", recursive=True))
-            pdirs = sorted(glob.glob(f"runs_guided/{t.lower()}/results_patch*"))
+            pdirs = sorted(glob.glob(f"{a.guided_dir}/{t.lower()}/results_patch*"))
             bq_b, _ = best_dockq(blind, ni, natm, td)
             gbest = None; npatch = 0
             for pd in pdirs:
