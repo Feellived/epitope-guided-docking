@@ -4,7 +4,7 @@
 YAML = 항원 full a3m(runs_msad_143의 A_d143.a3m) + 항체 empty + pocket(binder=항체 chain, contacts=항원 에피토프).
 비교 baseline = runs_msad_143 blind Boltz (같은 MSA, 제약만 차이 → 순수 '힌트 효과' 격리).
 사용(boltz env): python scripts/haddock_to_boltz_pocket.py --targets "8XSI 9SBB 8SIS 9ML8 8SDF 8SIT 9ML9" [--max-patches 8]"""
-import argparse, glob, gzip, json, os, re
+import argparse, csv, glob, gzip, json, os, re
 import numpy as np
 from Bio.PDB import PDBParser
 import build_msafree_summary as B
@@ -12,6 +12,24 @@ import build_msafree_summary as B
 def load_gz(p):
     h = gzip.open(p, "rt") if p.endswith(".gz") else open(p)
     return PDBParser(QUIET=True).get_structure("x", h)[0]
+
+def topscore_poses(t, n):
+    """클러스터링 전 — HADDOCK score 상위 N개 emref pose 경로(점수순). clustfcc.tsv에서 순위."""
+    rundir = os.path.join("haddock", t.lower(), "run"); emdir = os.path.join(rundir, "4_emref")
+    tsv = None
+    for f in glob.glob(os.path.join(rundir, "*clustfcc*", "*.tsv")) + glob.glob(os.path.join(rundir, "**", "*.tsv"), recursive=True):
+        try:
+            hdr = next(csv.reader(open(f), delimiter="\t"))
+            if {"model_name", "score"} <= set(hdr): tsv = f; break
+        except Exception: pass
+    if not tsv: return []
+    rows = sorted(csv.DictReader(open(tsv), delimiter="\t"), key=lambda r: float(r["score"]))
+    out = []
+    for r in rows[:n]:
+        p = os.path.join(emdir, r["model_name"] + ".gz")
+        if not os.path.exists(p): p = os.path.join(emdir, r["model_name"])
+        if os.path.exists(p): out.append(p)
+    return out
 
 def cluster_reps(t):
     """haddock/<t>/run/*seletopclusts*/ 각 클러스터 대표(model_1) pose 경로."""
@@ -50,6 +68,8 @@ def main():
     ap.add_argument("--max-distance", type=float, default=6.0)
     ap.add_argument("--min-contacts", type=int, default=4)
     ap.add_argument("--soft", action="store_true", help="force:false(소프트 조건화). 기본=force:true(패치로 실제 steering; Boltz #418 회피)")
+    ap.add_argument("--topn", type=int, default=0, help=">0이면 클러스터 대신 HADDOCK score 상위 N개 emref pose에서 patch 추출(클러스터링 우회)")
+    ap.add_argument("--union", action="store_true", help="추출한 patch들을 하나로 합쳐 단일 pocket 제약(넓은 영역 → --soft 권장)")
     ap.add_argument("--outdir", default="runs_guided")
     a = ap.parse_args()
     for t in a.targets.split():
@@ -64,8 +84,10 @@ def main():
         if not os.path.exists(a3m):
             a3m = os.path.abspath(os.path.join(a.src, t.lower(), f"msa_{t.lower()}", "A.a3m"))
         if not os.path.exists(a3m): print(f"{t}: a3m 없음 skip"); continue
-        reps = cluster_reps(t)
-        if not reps: print(f"{t}: HADDOCK 클러스터 없음 skip"); continue
+        reps = topscore_poses(t, a.topn) if a.topn > 0 else cluster_reps(t)
+        src = f"top{a.topn} score pose" if a.topn > 0 else "클러스터"
+        if not reps: print(f"{t}: {src} 없음 skip"); continue
+        maxp = a.topn if a.topn > 0 else a.max_patches
         patches = []
         for p in reps:
             try: pos = patch_from_pose(load_gz(p), ni)
@@ -73,7 +95,9 @@ def main():
             if len(pos) < a.min_contacts: continue
             if any(len(pos & q) / max(1, len(pos | q)) > 0.8 for q in patches): continue  # dedup(Jaccard>0.8)
             patches.append(pos)
-            if len(patches) >= a.max_patches: break
+            if len(patches) >= maxp: break
+        if a.union and patches:   # top-N 접촉 전체를 한 pocket으로
+            patches = [set().union(*patches)]
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         for k, pos in enumerate(patches):
             contacts = "\n".join(f"        - [{ag}, {r}]" for r in sorted(pos))
@@ -84,6 +108,8 @@ def main():
             L += ["constraints:", "  - pocket:", f"      binder: {binder}", "      contacts:", contacts,
                   f"      max_distance: {a.max_distance}", f"      force: {'false' if a.soft else 'true'}"]
             open(os.path.join(outd, f"boltz_{t.lower()}_patch{k}.yaml"), "w").write("\n".join(L) + "\n")
-        print(f"{t}: 클러스터 {len(reps)} → 고유 패치 {len(patches)} YAML (binder={binder}, 항원={ag})")
+        nres = len(patches[0]) if (a.union and patches) else "-"
+        print(f"{t}: {src} {len(reps)} → 패치 {len(patches)}개 YAML"
+              f"{f' (union {nres}잔기)' if a.union else ''} (binder={binder}, 항원={ag}, force={'false' if a.soft else 'true'})")
 
 if __name__ == "__main__": main()
