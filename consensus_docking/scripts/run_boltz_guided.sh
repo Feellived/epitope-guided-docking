@@ -10,16 +10,18 @@ source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 conda activate boltz 2>/dev/null
 TARGETS="${1:-8XSI 9SBB 8SIS 9ML8 8SDF 8SIT 9ML9}"; SAMP="${2:-5}"
 SMOKE="${SMOKE:-0}"
+OUTDIR="${OUTDIR:-runs_guided}"          # 패치 YAML·결과 폴더(변형 실험이면 딴 이름)
+GEN_ARGS="${GEN_ARGS:-}"                  # haddock_to_boltz_pocket.py 추가옵션(예: "--topn 20 --union --soft")
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 command -v boltz >/dev/null || { say "!! boltz 없음 (conda activate boltz?)"; exit 1; }
 
 # 1) HADDOCK 클러스터 → guided YAML 생성
 MP=8; [ "$SMOKE" = "1" ] && { MP=1; SAMP=1; }
-python scripts/haddock_to_boltz_pocket.py --targets "$TARGETS" --max-patches "$MP" || { say "!! YAML 생성 실패"; exit 1; }
+python scripts/haddock_to_boltz_pocket.py --targets "$TARGETS" --max-patches "$MP" --outdir "$OUTDIR" $GEN_ARGS || { say "!! YAML 생성 실패"; exit 1; }
 
 # 2) 각 patch YAML 실행
 for T in $TARGETS; do
-  t=$(echo "$T" | tr 'A-Z' 'a-z'); d="runs_guided/$t"
+  t=$(echo "$T" | tr 'A-Z' 'a-z'); d="$OUTDIR/$t"
   [ -d "$d" ] || { say "skip $T (YAML 없음)"; continue; }
   for y in "$d"/boltz_${t}_patch*.yaml; do
     [ -e "$y" ] || continue
