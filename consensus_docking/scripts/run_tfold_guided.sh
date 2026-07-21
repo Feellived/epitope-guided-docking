@@ -29,7 +29,7 @@ for T in $TARGETS; do
   fasta="$ROOT/$d/tfold_${t}.fasta"
   a3m="${AGA3M:-$ROOT/$SRC/$t/msa_$t/A.a3m}"        # 항원 full a3m (depth-sweep 아님)
   [ -f "$a3m" ] || { say "skip $T (항원 a3m 없음: $a3m)"; continue; }
-  for icf in "$d"/tfold_${t}_patch*.pt; do
+  for icf in "$ROOT/$d"/tfold_${t}_patch*.pt; do     # ⚠️ 절대경로(predict를 tfold/에서 cd해 돌리므로)
     [ -e "$icf" ] || continue
     pk=$(basename "$icf" .pt | sed 's/.*_//')        # patchN
     od="$ROOT/$d/out_tfold_$pk"; mkdir -p "$od"
