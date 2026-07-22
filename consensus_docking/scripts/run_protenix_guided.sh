@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 TARGETS="${1:-8XSI 9SBB 8SIS 9ML8 8SDF 8SIT 9ML9}"; SAMP="${2:-5}"
 SMOKE="${SMOKE:-0}"; OUTDIR="${OUTDIR:-runs_guided_prot}"; GEN_ARGS="${GEN_ARGS:-}"
-PROT_ENV="${PROT_ENV:-protenix}"; PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"; SEED="${SEED:-101}"
+PROT_ENV="${PROT_ENV:-protenix}"; PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"; SEED="${SEED:-101}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 conda activate "$PROT_ENV" 2>/dev/null
 export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
