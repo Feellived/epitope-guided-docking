@@ -5,7 +5,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 SRC="${SRC:-runs_rbd}"; SEED="${SEED:-0}"; PROT_ENV="${PROT_ENV:-protenix}"
-PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
+PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
 TARGETS="${1:-8P5M 8SDF 8SIQ 8SIS 8SIT 8XSI 9ML8 9ML9 9SBB 9ZDU}"; DEPTHS="${2:-143 8 1}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 conda activate "$PROT_ENV" 2>/dev/null
