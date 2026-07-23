@@ -53,9 +53,6 @@ def dockq(model_pdb, native_pdb):
     vals = re.findall(r"\bDockQ\b[:\s]+([0-9]*\.[0-9]+)", out)
     return max(float(v) for v in vals) if vals else None
 
-def sh(cmd, **kw):
-    return subprocess.run(cmd, env=ENV, capture_output=True, text=True, **kw)
-
 def native_merged(rd, tid, td):
     cj = json.load(open(os.path.join(rd, "chains.json")))
     ag = str(cj["antigen"]); ab = cj["antibody"]; ab = [ab] if isinstance(ab, str) else [str(x) for x in ab]
@@ -82,28 +79,31 @@ def parse_scores(zout):
     return scores
 
 def run_target(tid, zdir, rd, out_dir):
-    od = os.path.join(zdir, tid)
+    od = os.path.abspath(os.path.join(zdir, tid))
     ab = os.path.join(od, "antibody.pdb"); ag = os.path.join(od, "antigen.pdb"); blk = os.path.join(od, "block_noncdr.txt")
     if not all(os.path.exists(x) for x in (ab, ag, blk)):
         print(f"  {tid}: prep 산출 없음 (zdock_prep.py 먼저)"); return None
-    ab_m = os.path.join(od, "antibody_m.pdb"); ag_m = os.path.join(od, "antigen_m.pdb")
-    sh([os.path.join(ZHOME, "mark_sur"), ab, ab_m])
-    sh([os.path.join(ZHOME, "mark_sur"), ag, ag_m])
-    if not (os.path.exists(ab_m) and os.path.exists(ag_m)):
-        print(f"  {tid}: mark_sur 실패 (libg2c LD_LIBRARY_PATH 확인)"); return None
-    ab_b = os.path.join(od, "antibody_block.pdb")
-    r = sh([os.path.join(ZHOME, "block.pl"), ab_m, blk]); open(ab_b, "w").write(r.stdout)
-    if os.path.getsize(ab_b) == 0:
-        print(f"  {tid}: block.pl 출력 비어있음\n{r.stderr[:200]}"); return None
-    zout = os.path.join(od, "zdock.out")
-    zr = sh([os.path.join(ZHOME, "zdock"), "-R", ab_b, "-L", ag_m, *ZFLAGS, "-o", zout])
-    if not os.path.exists(zout) or os.path.getsize(zout) == 0:
-        print(f"  {tid}: zdock 실패\n  cmd flags={ZFLAGS}\n{zr.stdout[-300:]}\n{zr.stderr[-300:]}"); return None
-    for f in ("create_lig", "uniCHARMM", "create.pl"):     # create.pl은 cwd에 이 파일들을 요구
+    # ⚠️ mark_sur는 cwd에서 uniCHARMM를, create.pl은 ./create_lig를 참조 → 실행·데이터 파일을 od에 링크 + cwd=od로 실행
+    for f in ("mark_sur", "zdock", "block.pl", "create.pl", "create_lig", "uniCHARMM"):
         lk = os.path.join(od, f)
         if not os.path.exists(lk):
             os.symlink(os.path.join(ZHOME, f), lk)
-    sh(["./create.pl", os.path.basename(zout)], cwd=od)
+    def run(cmd):
+        return subprocess.run(cmd, env=ENV, cwd=od, capture_output=True, text=True)
+    run(["./mark_sur", "antibody.pdb", "antibody_m.pdb"])
+    run(["./mark_sur", "antigen.pdb", "antigen_m.pdb"])
+    ab_m = os.path.join(od, "antibody_m.pdb"); ag_m = os.path.join(od, "antigen_m.pdb")
+    if not os.path.exists(ab_m) or os.path.getsize(ab_m) == 0 or not os.path.exists(ag_m) or os.path.getsize(ag_m) == 0:
+        print(f"  {tid}: mark_sur 출력 비어있음 (uniCHARMM cwd/libg2c 확인)"); return None
+    r = run(["./block.pl", "antibody_m.pdb", "block_noncdr.txt"])
+    ab_b = os.path.join(od, "antibody_block.pdb"); open(ab_b, "w").write(r.stdout)
+    if os.path.getsize(ab_b) == 0:
+        print(f"  {tid}: block.pl 출력 비어있음\n{r.stderr[:200]}"); return None
+    zr = run(["./zdock", "-R", "antibody_block.pdb", "-L", "antigen_m.pdb", *ZFLAGS, "-o", "zdock.out"])
+    zout = os.path.join(od, "zdock.out")
+    if not os.path.exists(zout) or os.path.getsize(zout) == 0:
+        print(f"  {tid}: zdock 실패\n  flags={ZFLAGS}\n{zr.stdout[-300:]}\n{zr.stderr[-300:]}"); return None
+    run(["./create.pl", "zdock.out"])
     poses = sorted(glob.glob(os.path.join(od, "complex.*")),   # create.pl 산출 complex.1, complex.2, ...
                    key=lambda p: int((re.findall(r"\d+", os.path.basename(p)) or [0])[0]))
     scores = parse_scores(zout)
