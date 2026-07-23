@@ -22,7 +22,9 @@ from Bio.PDB.Chain import Chain as BChain
 ZHOME = os.environ.get("ZDOCK_HOME", os.path.expanduser("~/tools/zdock3.0.2_linux_x64"))
 LIBG2C = os.environ.get("LIBG2C", os.path.expanduser("~/tools/lib"))
 ZFLAGS = shlex.split(os.environ.get("ZDOCK_FLAGS", "-F -N 100"))
-ENV = {**os.environ, "LD_LIBRARY_PATH": LIBG2C + ":" + os.environ.get("LD_LIBRARY_PATH", "")}
+ENV = {**os.environ,
+       "LD_LIBRARY_PATH": LIBG2C + ":" + os.environ.get("LD_LIBRARY_PATH", ""),
+       "PATH": ZHOME + ":" + os.environ.get("PATH", "")}   # create.pl 내부 create_lig(bare) 호출 대비
 
 def load(p):
     return (MMCIFParser(QUIET=True) if p.endswith(".cif") else PDBParser(QUIET=True)).get_structure("x", p)[0]
