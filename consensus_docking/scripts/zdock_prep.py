@@ -11,6 +11,8 @@
 """
 import argparse, glob, json, os
 from Bio.PDB import PDBParser, MMCIFParser, PDBIO, Chain, Model, Structure
+from Bio.PDB.Atom import Atom as BAtom
+from Bio.PDB.Residue import Residue as BRes
 from Bio.Data.IUPACData import protein_letters_3to1
 from anarci import run_anarci
 
@@ -39,12 +41,25 @@ def cdr_index(seq):
         pos += 1
     return cdr
 
+def _rep(x):
+    """DisorderedAtom/DisorderedResidue → 대표 conformer, 아니면 그대로."""
+    return x.disordered_get() if hasattr(x, "disordered_get") else x
+
 def write_single(res_lists, cid, out):
-    """여러 residue-list를 한 사슬 cid로 병합, 1..N 순차 재넘버 → PDB 저장. 총 잔기수 반환."""
+    """여러 residue-list를 한 사슬 cid로 병합, 1..N 재넘버 → PDB. altloc/disorder 제거(대표 conformer만 새 Atom으로).
+    ⚠️ r.copy()는 디스오더 원자에서 PDBIO 저장이 깨짐 → 원본 원자에서 좌표만 읽어 깨끗한 Atom 재생성."""
     st = Structure.Structure("x"); md = Model.Model(0); nc = Chain.Chain(cid); n = 1
     for rl in res_lists:
         for r in rl:
-            rr = r.copy(); rr.detach_parent(); rr.id = (" ", n, " "); nc.add(rr); n += 1
+            src = _rep(r)
+            nr = BRes((" ", n, " "), src.resname, " ")
+            for atom in src:
+                a = _rep(atom)
+                bf = a.get_bfactor(); occ = a.get_occupancy()
+                nr.add(BAtom(a.get_name(), a.get_coord(), 0.0 if bf is None else bf,
+                             1.0 if occ is None else occ, " ", a.get_fullname(),
+                             a.get_serial_number(), a.element))
+            nc.add(nr); n += 1
     md.add(nc); st.add(md); io = PDBIO(); io.set_structure(st); io.save(out)
     return n - 1
 
