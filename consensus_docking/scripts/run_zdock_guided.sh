@@ -17,7 +17,7 @@ MODEL="${1:-}"; TARGETS="${2:-}"
 SMOKE="${SMOKE:-0}"; OUTDIR="${OUTDIR:-runs_zdock_guided}"; RUN="${RUN:-runs_diverse}"
 SAMP="${SAMP:-5}"; SEEDS="${SEEDS:-42 43 44 45 46}"; GEN_ARGS="${GEN_ARGS:-}"
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"; TFOLD_ENV="${TFOLD_ENV:-tfold}"
-PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"   # ⚠️ blind diverse는 leaky 20250630 사용 → 깨끗한 delta는 blind도 v1.0.0 재실행 필요(아래 경고)
+PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"   # diverse=clean(타깃 2025-09~2026 > 컷오프 2025-06-30) + blind와 동일 모델 → 비교 공정. (RBD/Study-B 세트만 default 필요)
 SEED="${SEED:-101}"; TFOLD_DIR="${TFOLD_DIR:-$ROOT/tfold}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 if [ "$SMOKE" = "1" ]; then SAMP=1; SEEDS="42"; [ -z "$GEN_ARGS" ] && GEN_ARGS="--topn 1 --max-patches 1"; fi
@@ -28,7 +28,7 @@ conda activate "$BOLTZ_ENV" 2>/dev/null   # biopython/torch 있는 env(대개 bo
 python scripts/zdock_to_pocket.py --targets "$TARGETS" --emit "$MODEL" --outdir "$OUTDIR" --run-dir "$RUN" $GEN_ARGS \
   || { say "!! 입력 생성 실패 (tfold면 torch 있는 env 필요 — TFOLD emit는 tfold env에서 먼저 생성)"; exit 1; }
 
-[ "$MODEL" = "protenix" ] && say "⚠️ PROT_MODEL=$PROT_MODEL. blind diverse는 protenix_base_20250630_v1.0.0(leaky)이라 모델버전 confound — 깨끗한 비교는 blind도 v1.0.0로 재생성 필요."
+[ "$MODEL" = "protenix" ] && say "PROT_MODEL=$PROT_MODEL (diverse=clean·blind과 동일 모델로 공정 비교; 재실행 불필요)"
 
 # 2) 모델별 실행
 case "$MODEL" in
