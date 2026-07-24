@@ -89,21 +89,26 @@ def antigen_epitope(pose, ag_seq, cutoff, mode="heavy"):
     return epi
 
 
-def cover_patches(patches, max_patches, min_new):
+def cover_patches(patches, max_patches, cover_frac=0.9, min_new=1):
     """⭐기본 방식: 항원 표면을 '빠지는 곳 없이' 덮는 최소 자리 집합 (greedy set cover).
 
-    왜 이게 필요한가 — 단순히 '겹침 X% 미만이면 다른 자리'로 나열하면, 물리 도커(ZDOCK FFT/HADDOCK)가
-    표면을 촘촘히 훑기 때문에 같은 영역에서 몇 잔기씩 밀린 패치가 계속 '새 자리'로 잡혀 상한(max_patches)에
-    걸리고, 결국 점수 랭킹 상위 N개를 자르는 꼴이 된다(=피하려던 점수 편향이 재유입).
+    왜 필요한가 — '겹침 X% 미만이면 다른 자리'로 단순 나열하면, 물리 도커(ZDOCK FFT/HADDOCK)가 표면을
+    촘촘히 훑기 때문에 같은 영역에서 몇 잔기씩 밀린 패치가 계속 '새 자리'로 잡혀 상한(max_patches)에
+    걸리고, 결국 점수 랭킹 상위 N개를 자르는 꼴이 된다(=피하려던 점수 편향 재유입).
 
-    방식 — pose들이 실제 접촉한 잔기 전체(touched)를 목표로, 매 단계 '아직 안 덮인 잔기를 가장 많이
-    새로 덮는' 패치를 고른다. 새로 덮는 잔기가 min_new 미만이면 포화로 보고 중단.
-    → 자리 개수 K가 타깃마다 자동 결정(작은 항원=적게, 큰 항원=많게), 중복 최소, 커버리지 최대.
+    ⚠️ 중단 규칙 주의(실측으로 배운 것) — '한 걸음당 새로 덮는 잔기 수'로 끊으면 안 된다.
+    실제 pose들은 몇 잔기씩만 밀려 몰려 있어서, 가장 큰 패치를 하나 고르면 나머지는 1~4잔기씩만
+    보태 → 즉시 포화로 판정돼 자리가 1개만 나온다. 그래서 **누적 커버리지 목표(cover_frac)**로 끊는다.
+
+    방식 — pose들이 실제 접촉한 잔기 전체(touched) 중 cover_frac(기본 90%)을 덮을 때까지,
+    매 단계 '아직 안 덮인 잔기를 가장 많이 새로 덮는' 패치를 고른다.
+    → 자리 개수가 타깃마다 자동 결정, 중복 최소, 커버리지 보장.
 
     반환 (선택된 패치들, 덮은 잔기, 전체 접촉 잔기)."""
     touched = set().union(*patches)
+    target = max(1, int(len(touched) * cover_frac))
     covered, sel, remaining = set(), [], list(patches)
-    while len(sel) < max_patches and remaining:
+    while len(sel) < max_patches and remaining and len(covered) < target:
         best, gain = None, 0
         for p in remaining:
             g = len(p - covered)
@@ -229,7 +234,7 @@ def main():
     ap.add_argument("--max-patches", type=int, default=1, help="union 아닐 때 pose별 패치 최대 개수")
     ap.add_argument("--contact-mode", default="heavy", choices=["heavy", "ca"], help="계면 판정. heavy=표준(heavy atom 거리), ca=옛방식(헐거움)")
     ap.add_argument("--extract-dist", type=float, default=5.0, help="계면 컷오프(Å). heavy면 5.0 권장(=표준 에피토프), ca면 10.0")
-    ap.add_argument("--min-new", type=int, default=5, help="표면 커버: 새로 덮는 잔기가 이보다 적으면 포화로 보고 중단(자리 개수 자동 결정)")
+    ap.add_argument("--cover-frac", type=float, default=0.9, help="표면 커버 목표(접촉 잔기의 이 비율을 덮을 때까지 자리 추가). 자리 개수는 자동")
     ap.add_argument("--merge-overlap", type=float, default=0.5, help="자리 병합 기준(Jaccard). 이보다 많이 겹치면 같은 자리로 봄")
     ap.add_argument("--max-distance", type=float, default=6.0, help="co-folder pocket 제약 거리(Å)")
     ap.add_argument("--min-contacts", type=int, default=4)
@@ -283,7 +288,7 @@ def main():
                 patches = [set().union(*allp)]
                 src = f"전체 pose union({len(allp)}개 합침)"
             else:
-                patches, cov, touched = cover_patches(allp, a.max_patches, a.min_new)
+                patches, cov, touched = cover_patches(allp, a.max_patches, a.cover_frac)
                 src = (f"표면 커버({len(allp)} pose패치 → {len(patches)}자리, "
                        f"접촉잔기 {len(cov)}/{len(touched)} 덮음)")
 
