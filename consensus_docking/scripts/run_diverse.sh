@@ -10,6 +10,8 @@
 #   CHAI_ENV=mychai PROT_ENV=myprot bash scripts/run_diverse.sh   # env 이름 다르면 override
 #
 # GPU 1개 가정 → 순차. 출력(cif) 있으면 스킵하므로 중단 후 다시 실행하면 이어받음.
+#   ⚠️ Protenix 재실행(clean 모델로 갈아끼우기)은 기존 out_protenix를 먼저 지워야 함:
+#      rm -rf runs_diverse/*/out_protenix   (skip 로직이 있어 안 지우면 옛 결과 그대로 둠)
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 
@@ -18,7 +20,10 @@ MODELS="${*:-chai protenix}"
 CHAI_ENV="${CHAI_ENV:-chai}"
 PROT_ENV="${PROT_ENV:-protenix}"
 CF_ENV="${CF_ENV:-colabfold}"          # AF2-Multimer(ColabFold) env — 실제 이름 확인 필요
-PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
+# ⚠️ 2026-07-24: 기본값을 leakage-free로 전환. 이전 default(protenix_base_20250630_v1.0.0, 컷오프 2025-06-30)는
+#   RBD/Study-B 세트(2024~2025상)서 leaky. diverse 세트(2025-09~2026)는 실질 clean이나 guided(default 사용)와
+#   버전 통일 위해 default로 맞춘다. 20250630로 돌리려면 PROT_MODEL 명시.
+PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
 LOG="run_diverse.log"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
 
@@ -48,6 +53,7 @@ for model in $MODELS; do
       export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights
       export LAYERNORM_TYPE=torch
       command -v protenix >/dev/null || { say "!! protenix 없음 (env '$PROT_ENV' 확인) → 스킵"; continue; }
+      say "  PROT_MODEL=$PROT_MODEL"
       out=out_protenix ;;
     colabfold)   # AF2-Multimer — ⚠️ 초안(플래그 미검증), 내일 스모크 후 사용
       conda activate "$CF_ENV" 2>/dev/null
