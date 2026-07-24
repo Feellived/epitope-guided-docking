@@ -12,8 +12,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
-MODEL="${1:-}"; TARGETS="${2:-}"
-[ -z "$MODEL" ] || [ -z "$TARGETS" ] && { echo "사용: bash scripts/run_zdock_guided.sh <boltz|protenix|tfold> \"9J4C 9KKJ ...\""; exit 1; }
+MODEL="${1:-}"; TARGETS="${2:-9K6J 9XF9 9Y0A 9VXL 9LY5 9MQR 9KKJ 9W43 9YC6 9J4C}"   # 타깃 생략 시 diverse 10 전체
+[ -z "$MODEL" ] && { echo "사용: bash scripts/run_zdock_guided.sh <boltz|protenix|tfold> [\"9J4C 9KKJ ...\"]  (타깃 생략=diverse 10 전체)"; exit 1; }
 SMOKE="${SMOKE:-0}"; OUTDIR="${OUTDIR:-runs_zdock_guided}"; RUN="${RUN:-runs_diverse}"
 SAMP="${SAMP:-5}"; SEEDS="${SEEDS:-42 43 44 45 46}"; GEN_ARGS="${GEN_ARGS:-}"
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"; TFOLD_ENV="${TFOLD_ENV:-tfold}"
