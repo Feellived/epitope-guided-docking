@@ -20,10 +20,10 @@ MODELS="${*:-chai protenix}"
 CHAI_ENV="${CHAI_ENV:-chai}"
 PROT_ENV="${PROT_ENV:-protenix}"
 CF_ENV="${CF_ENV:-colabfold}"          # AF2-Multimer(ColabFold) env — 실제 이름 확인 필요
-# ⚠️ 2026-07-24: 기본값을 leakage-free로 전환. 이전 default(protenix_base_20250630_v1.0.0, 컷오프 2025-06-30)는
-#   RBD/Study-B 세트(2024~2025상)서 leaky. diverse 세트(2025-09~2026)는 실질 clean이나 guided(default 사용)와
-#   버전 통일 위해 default로 맞춘다. 20250630로 돌리려면 PROT_MODEL 명시.
-PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
+# leakage는 타깃별: diverse 10타깃은 전부 2025-09~2026 공개 = 20250630 컷오프(2025-06-30) 이후 → clean.
+#   20250630이 default(2021-09)보다 강한 모델이라 diverse엔 20250630 유지(blind 기존결과와도 일치, 재실행 불필요).
+#   ⚠️ default(2021-09)는 컷오프 이전 타깃(RBD/Study-B 세트)에서만 필요 — 그 세트 러너에서 PROT_MODEL 지정.
+PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
 LOG="run_diverse.log"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
 
