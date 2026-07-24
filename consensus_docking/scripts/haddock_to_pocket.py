@@ -49,7 +49,7 @@ import argparse, glob, gzip, json, os, re
 from Bio.PDB import PDBParser
 
 # 에피토프 추출·emit 로직은 ZDOCK판과 완전히 동일 → 재사용(중복 구현 금지)
-from zdock_to_pocket import antigen_epitope, emit_boltz, emit_protenix, emit_tfold
+from zdock_to_pocket import antigen_epitope, cover_patches, emit_boltz, emit_protenix, emit_tfold
 
 DIVERSE = ["9K6J", "9XF9", "9Y0A", "9VXL", "9LY5", "9MQR", "9KKJ", "9W43", "9YC6", "9J4C"]
 
@@ -82,6 +82,7 @@ def main():
     ap.add_argument("--max-patches", type=int, default=20, help="서로 다른 자리 최대 개수(연산량 상한)")
     ap.add_argument("--contact-mode", default="heavy", choices=["heavy", "ca"], help="계면 판정. heavy=표준(heavy atom 거리), ca=옛방식(헐거움)")
     ap.add_argument("--extract-dist", type=float, default=5.0, help="계면 컷오프(Å). heavy면 5.0(=표준 에피토프 ~15~25잔기)")
+    ap.add_argument("--min-new", type=int, default=5, help="표면 커버: 새로 덮는 잔기가 이보다 적으면 포화로 중단(자리 개수 자동)")
     ap.add_argument("--merge-overlap", type=float, default=0.5, help="자리 병합 기준(Jaccard). 이보다 많이 겹치면 같은 자리")
     ap.add_argument("--max-distance", type=float, default=6.0, help="co-folder pocket 제약 거리(Å)")
     ap.add_argument("--min-contacts", type=int, default=4)
@@ -105,22 +106,18 @@ def main():
         if not poses:
             print(f"{t}: {a.haddock_dir}/{t.lower()}/run/{a.stage}/ pose 없음 (HADDOCK 먼저) skip"); continue
 
-        # 서로 다른 자리 전부 — 겹침 80%↑ 만 병합(중복 제거일 뿐 클러스터링 아님)
-        patches = []
+        # 표면을 빠짐없이 덮는 최소 자리 집합(greedy set cover) — 자리 개수는 타깃마다 자동
+        allp = []
         for p in poses:
             try:
                 epi = antigen_epitope(load_gz(p), ag_seq, a.extract_dist, a.contact_mode)
             except Exception:
                 continue
-            if len(epi) < a.min_contacts:
-                continue
-            if any(len(epi & q) / max(1, len(epi | q)) > a.merge_overlap for q in patches):
-                continue
-            patches.append(epi)
-            if len(patches) >= a.max_patches:
-                break
-        if not patches:
+            if len(epi) >= a.min_contacts:
+                allp.append(epi)
+        if not allp:
             print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
+        patches, cov, touched = cover_patches(allp, a.max_patches, a.min_new)
 
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         wrote_fasta = [False]
@@ -132,7 +129,7 @@ def main():
             if "tfold" in emit:
                 emit_tfold(outd, t, seqmap, ag, ab, pos, k, wrote_fasta)
         sizes = ",".join(str(len(p)) for p in patches)
-        print(f"{t}: {a.stage} {len(poses)} pose에서 서로 다른 자리 {len(patches)}개(잔기수 {sizes}) "
+        print(f"{t}: {a.stage} {len(poses)} pose → 표면커버 {len(patches)}자리(잔기수 {sizes}; 접촉잔기 {len(cov)}/{len(touched)} 덮음) "
               f"emit={emit} (binder={binder}, 항원={ag}, force={'false' if a.soft else 'true'}) → {outd}/")
 
 
