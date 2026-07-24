@@ -82,7 +82,7 @@ def main():
     ap.add_argument("--max-patches", type=int, default=20, help="서로 다른 자리 최대 개수(연산량 상한)")
     ap.add_argument("--contact-mode", default="heavy", choices=["heavy", "ca"], help="계면 판정. heavy=표준(heavy atom 거리), ca=옛방식(헐거움)")
     ap.add_argument("--extract-dist", type=float, default=5.0, help="계면 컷오프(Å). heavy면 5.0(=표준 에피토프 ~15~25잔기)")
-    ap.add_argument("--min-new", type=int, default=5, help="표면 커버: 새로 덮는 잔기가 이보다 적으면 포화로 중단(자리 개수 자동)")
+    ap.add_argument("--cover-frac", type=float, default=0.9, help="표면 커버 목표(접촉 잔기의 이 비율까지). 자리 개수 자동")
     ap.add_argument("--merge-overlap", type=float, default=0.5, help="자리 병합 기준(Jaccard). 이보다 많이 겹치면 같은 자리")
     ap.add_argument("--max-distance", type=float, default=6.0, help="co-folder pocket 제약 거리(Å)")
     ap.add_argument("--min-contacts", type=int, default=4)
@@ -117,7 +117,7 @@ def main():
                 allp.append(epi)
         if not allp:
             print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
-        patches, cov, touched = cover_patches(allp, a.max_patches, a.min_new)
+        patches, cov, touched = cover_patches(allp, a.max_patches, a.cover_frac)
 
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         wrote_fasta = [False]
