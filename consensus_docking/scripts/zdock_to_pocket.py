@@ -66,6 +66,52 @@ def antigen_epitope(pose, ag_seq, extract_dist):
     return epi
 
 
+def kmeans_patches(ranked, K):
+    """ranked=[(rank, patch_set)] (rank↑=ZDOCK score↓). ZDOCK pose들의 에피토프를 잔기-조성으로 K-means 클러스터
+    → 항원 표면 전역을 커버하는 K개 대표 패치. 각 대표 = 클러스터 내 최고score(=최저rank) pose의 패치.
+    (저번 HADDOCK-guided가 seletopclusts로 한 것과 동일 취지: 여러 후보 자리 전역 탐색 → best-over-patches)."""
+    if len(ranked) <= K:
+        return [p for _, p in ranked]
+    allres = sorted(set().union(*[p for _, p in ranked]))
+    ix = {r: i for i, r in enumerate(allres)}
+    X = np.zeros((len(ranked), len(allres)), dtype=float)
+    for i, (_, p) in enumerate(ranked):
+        for r in p:
+            X[i, ix[r]] = 1.0
+    labels = None
+    try:
+        from scipy.cluster.vq import kmeans2
+        _, labels = kmeans2(X, K, minit="++", seed=0, missing="warn")
+    except Exception:
+        labels = None
+    if labels is None or len(set(labels)) < 2:
+        return _greedy_diverse(ranked, K)          # scipy 없거나 퇴화 → farthest-point 대체(동일 취지)
+    reps = []
+    for k in sorted(set(int(x) for x in labels)):
+        members = [i for i in range(len(ranked)) if labels[i] == k]
+        if members:
+            reps.append(ranked[min(members)][1])   # ranked는 rank(score)순 → min index=클러스터 최고score
+    return reps
+
+
+def _greedy_diverse(ranked, K):
+    """scipy 대체: Jaccard 최원점(farthest-point) 선택 = 서로 가장 다른 K개 패치(표면 전역)."""
+    def jac(a, b): return len(a & b) / max(1, len(a | b))
+    sel = [ranked[0][1]]
+    for _ in range(K - 1):
+        cand, cd = None, -1.0
+        for _, p in ranked:
+            if any(jac(p, q) > 0.8 for q in sel):
+                continue
+            d = min(1 - jac(p, q) for q in sel)
+            if d > cd:
+                cd, cand = d, p
+        if cand is None:
+            break
+        sel.append(cand)
+    return sel
+
+
 def zdock_poses(zdir, t, topn):
     """zdock/<t>/complex.N[.pdb] 를 순위순(complex.1 = score 1위)으로 top-N. 확장자 유무 모두 대응."""
     od = os.path.join(zdir, t.lower())
@@ -128,6 +174,7 @@ def main():
     ap.add_argument("--run-dir", default="runs_diverse")
     ap.add_argument("--emit", default="boltz,protenix,tfold", help="쉼표: boltz,protenix,tfold 중 선택")
     ap.add_argument("--topn", type=int, default=1, help="상위 N pose(순위=ZDOCK score). 0=전체")
+    ap.add_argument("--kmeans", type=int, default=0, help=">0이면 pose 에피토프를 K개로 클러스터(표면 전역 K개 후보 자리). 저번 HADDOCK-guided 방식")
     ap.add_argument("--union", action="store_true", help="추출 패치들을 하나로 합쳐 단일 제약(넓게)")
     ap.add_argument("--max-patches", type=int, default=1, help="union 아닐 때 pose별 패치 최대 개수")
     ap.add_argument("--extract-dist", type=float, default=10.0, help="에피토프 추출: 항원 CA가 항체 CA와 이 거리(Å) 내")
@@ -148,27 +195,45 @@ def main():
         binder = str(ab[0])
         seqmap = {c["id"]: c["seq"] for c in cj["chains"]}
         ag_seq = seqmap.get(ag, "")
-        poses = zdock_poses(a.zdir, t, a.topn)
-        if not poses:
-            print(f"{t}: zdock/{t.lower()}/complex.* 없음 (ZDOCK run 먼저) skip"); continue
-
-        patches = []
-        for p in poses:
-            try:
-                epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist)
-            except Exception as e:
-                print(f"  {t} {os.path.basename(p)} 파싱 실패: {e}"); continue
-            if len(epi) < a.min_contacts:
-                continue
-            if any(len(epi & q) / max(1, len(epi | q)) > 0.8 for q in patches):
-                continue                          # dedup Jaccard>0.8
-            patches.append(epi)
-            if not a.union and len(patches) >= a.max_patches:
-                break
-        if not patches:
-            print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
-        if a.union:
-            patches = [set().union(*patches)]
+        if a.kmeans > 0:
+            pool = a.topn if a.topn > 1 else 0     # topn 기본(1)이면 전체 pose 풀에서 클러스터
+            poses = zdock_poses(a.zdir, t, pool)
+            if not poses:
+                print(f"{t}: zdock/{t.lower()}/complex.* 없음 (ZDOCK run 먼저) skip"); continue
+            ranked = []
+            for rank, p in enumerate(poses):
+                try:
+                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist)
+                except Exception:
+                    continue
+                if len(epi) >= a.min_contacts:
+                    ranked.append((rank, epi))
+            if not ranked:
+                print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
+            patches = kmeans_patches(ranked, a.kmeans)
+            src = f"kmeans K={a.kmeans} (pool {len(poses)} pose → {len(patches)}자리)"
+        else:
+            poses = zdock_poses(a.zdir, t, a.topn)
+            if not poses:
+                print(f"{t}: zdock/{t.lower()}/complex.* 없음 (ZDOCK run 먼저) skip"); continue
+            patches = []
+            for p in poses:
+                try:
+                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist)
+                except Exception as e:
+                    print(f"  {t} {os.path.basename(p)} 파싱 실패: {e}"); continue
+                if len(epi) < a.min_contacts:
+                    continue
+                if any(len(epi & q) / max(1, len(epi | q)) > 0.8 for q in patches):
+                    continue                       # dedup Jaccard>0.8
+                patches.append(epi)
+                if not a.union and len(patches) >= a.max_patches:
+                    break
+            if not patches:
+                print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
+            if a.union:
+                patches = [set().union(*patches)]
+            src = f"top{a.topn} pose" + (" union" if a.union else "")
 
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         wrote_fasta = [False]
@@ -179,7 +244,6 @@ def main():
                 emit_protenix(outd, t, cj["chains"], ag, binder, pos, a.max_distance, k)
             if "tfold" in emit:
                 emit_tfold(outd, t, seqmap, ag, ab, pos, k, wrote_fasta)
-        src = f"top{a.topn} pose" + (" union" if a.union else "")
         sizes = ",".join(str(len(p)) for p in patches)
         print(f"{t}: {src} → 패치 {len(patches)}개(잔기수 {sizes}) emit={emit} "
               f"(binder={binder}, 항원={ag}, force={'false' if a.soft else 'true'}) → {outd}/")
