@@ -67,12 +67,16 @@ def antigen_epitope(pose, ag_seq, extract_dist):
 
 
 def zdock_poses(zdir, t, topn):
-    """zdock/<t>/complex.* 를 순위순(complex.1 = score 1위)으로 top-N."""
+    """zdock/<t>/complex.N[.pdb] 를 순위순(complex.1 = score 1위)으로 top-N. 확장자 유무 모두 대응."""
     od = os.path.join(zdir, t.lower())
-    ps = glob.glob(os.path.join(od, "complex.*"))
-    ps = [p for p in ps if re.search(r"complex\.\d+$", p)]
-    ps.sort(key=lambda p: int(re.findall(r"\d+$", p)[0]))
-    return ps[:topn] if topn > 0 else ps
+    out = []
+    for p in glob.glob(os.path.join(od, "complex.*")):
+        m = re.search(r"complex\.(\d+)", os.path.basename(p))   # 'complex.10.pdb' → 10
+        if m:
+            out.append((int(m.group(1)), p))
+    out.sort()
+    poses = [p for _, p in out]
+    return poses[:topn] if topn > 0 else poses
 
 
 # ── emitters ──
