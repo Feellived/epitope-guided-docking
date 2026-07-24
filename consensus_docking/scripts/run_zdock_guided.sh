@@ -21,7 +21,7 @@ PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"   # diverse=clean(타�
 SEED="${SEED:-101}"; TFOLD_DIR="${TFOLD_DIR:-$ROOT/tfold}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 if [ "$SMOKE" = "1" ]; then SAMP=1; SEEDS="42"; [ -z "$GEN_ARGS" ] && GEN_ARGS="--topn 1 --max-patches 1"; fi
-[ -z "$GEN_ARGS" ] && GEN_ARGS="--kmeans 6"   # 기본=표면 전역 6개 후보자리(저번 HADDOCK-guided 방식). top-1만 하려면 GEN_ARGS="--topn 1"
+[ -z "$GEN_ARGS" ] && GEN_ARGS="--topn 0 --max-patches 20"   # 기본=ZDOCK이 붙은 '서로 다른 자리 전부'(겹침80%↑만 병합). K 강제 없음·빠지는 곳 없음. (대안: GEN_ARGS="--kmeans 6" 또는 "--topn 1")
 
 # 1) ZDOCK pose → guided 입력 생성
 say "[gen] zdock_to_pocket.py --emit $MODEL --targets \"$TARGETS\" $GEN_ARGS"
