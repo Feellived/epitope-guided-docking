@@ -89,6 +89,33 @@ def antigen_epitope(pose, ag_seq, cutoff, mode="heavy"):
     return epi
 
 
+def cover_patches(patches, max_patches, min_new):
+    """⭐기본 방식: 항원 표면을 '빠지는 곳 없이' 덮는 최소 자리 집합 (greedy set cover).
+
+    왜 이게 필요한가 — 단순히 '겹침 X% 미만이면 다른 자리'로 나열하면, 물리 도커(ZDOCK FFT/HADDOCK)가
+    표면을 촘촘히 훑기 때문에 같은 영역에서 몇 잔기씩 밀린 패치가 계속 '새 자리'로 잡혀 상한(max_patches)에
+    걸리고, 결국 점수 랭킹 상위 N개를 자르는 꼴이 된다(=피하려던 점수 편향이 재유입).
+
+    방식 — pose들이 실제 접촉한 잔기 전체(touched)를 목표로, 매 단계 '아직 안 덮인 잔기를 가장 많이
+    새로 덮는' 패치를 고른다. 새로 덮는 잔기가 min_new 미만이면 포화로 보고 중단.
+    → 자리 개수 K가 타깃마다 자동 결정(작은 항원=적게, 큰 항원=많게), 중복 최소, 커버리지 최대.
+
+    반환 (선택된 패치들, 덮은 잔기, 전체 접촉 잔기)."""
+    touched = set().union(*patches)
+    covered, sel, remaining = set(), [], list(patches)
+    while len(sel) < max_patches and remaining:
+        best, gain = None, 0
+        for p in remaining:
+            g = len(p - covered)
+            if g > gain:
+                gain, best = g, p
+        if best is None or gain < min_new:
+            break
+        sel.append(best); covered |= best
+        remaining = [p for p in remaining if p is not best]
+    return sel, covered, touched
+
+
 def kmeans_patches(ranked, K):
     """ranked=[(rank, patch_set)] (rank↑=ZDOCK score↓). ZDOCK pose들의 에피토프를 잔기-조성으로 K-means 클러스터
     → 항원 표면 전역을 커버하는 K개 대표 패치. 각 대표 = 클러스터 내 최고score(=최저rank) pose의 패치.
@@ -202,6 +229,7 @@ def main():
     ap.add_argument("--max-patches", type=int, default=1, help="union 아닐 때 pose별 패치 최대 개수")
     ap.add_argument("--contact-mode", default="heavy", choices=["heavy", "ca"], help="계면 판정. heavy=표준(heavy atom 거리), ca=옛방식(헐거움)")
     ap.add_argument("--extract-dist", type=float, default=5.0, help="계면 컷오프(Å). heavy면 5.0 권장(=표준 에피토프), ca면 10.0")
+    ap.add_argument("--min-new", type=int, default=5, help="표면 커버: 새로 덮는 잔기가 이보다 적으면 포화로 보고 중단(자리 개수 자동 결정)")
     ap.add_argument("--merge-overlap", type=float, default=0.5, help="자리 병합 기준(Jaccard). 이보다 많이 겹치면 같은 자리로 봄")
     ap.add_argument("--max-distance", type=float, default=6.0, help="co-folder pocket 제약 거리(Å)")
     ap.add_argument("--min-contacts", type=int, default=4)
@@ -241,24 +269,23 @@ def main():
             poses = zdock_poses(a.zdir, t, a.topn)
             if not poses:
                 print(f"{t}: zdock/{t.lower()}/complex.* 없음 (ZDOCK run 먼저) skip"); continue
-            patches = []
+            allp = []
             for p in poses:
                 try:
                     epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist, a.contact_mode)
                 except Exception as e:
                     print(f"  {t} {os.path.basename(p)} 파싱 실패: {e}"); continue
-                if len(epi) < a.min_contacts:
-                    continue
-                if any(len(epi & q) / max(1, len(epi | q)) > a.merge_overlap for q in patches):
-                    continue                       # dedup Jaccard>0.8
-                patches.append(epi)
-                if not a.union and len(patches) >= a.max_patches:
-                    break
-            if not patches:
+                if len(epi) >= a.min_contacts:
+                    allp.append(epi)
+            if not allp:
                 print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
             if a.union:
-                patches = [set().union(*patches)]
-            src = ("전체 pose에서 서로 다른 자리" if a.topn == 0 else f"top{a.topn} pose") + (" union" if a.union else "")
+                patches = [set().union(*allp)]
+                src = f"전체 pose union({len(allp)}개 합침)"
+            else:
+                patches, cov, touched = cover_patches(allp, a.max_patches, a.min_new)
+                src = (f"표면 커버({len(allp)} pose패치 → {len(patches)}자리, "
+                       f"접촉잔기 {len(cov)}/{len(touched)} 덮음)")
 
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         wrote_fasta = [False]
