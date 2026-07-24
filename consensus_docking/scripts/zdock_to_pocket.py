@@ -48,21 +48,44 @@ def best_ag_chain(model, ag_seq):
     return best
 
 
-def antigen_epitope(pose, ag_seq, extract_dist):
-    """complex.* pose의 항원 계면 잔기 → 항원 서열 1-based 위치 집합.
-    항원 사슬은 서열매칭으로 식별, 잔기순서 = 서열순서(zdock_prep가 1..N 재넘버) → index+1 = seq 위치."""
+def _is_h(atom):
+    el = (atom.element or "").strip().upper()
+    nm = atom.get_name().strip()
+    return el == "H" or (el == "" and (nm[:1] == "H" or (len(nm) >= 2 and nm[0].isdigit() and nm[1] == "H")))
+
+
+def antigen_epitope(pose, ag_seq, cutoff, mode="heavy"):
+    """pose의 항원 계면 잔기 → 항원 서열 1-based 위치 집합.
+    항원 사슬은 서열매칭으로 식별. 잔기순서=서열순서(prep가 1..N 재넘버) → index+1 = seq 위치.
+    mode="heavy"(기본): 항원 heavy atom이 항체 heavy atom과 cutoff(기본 5Å) 이내 = 표준 에피토프 정의
+      → 실제 항체 에피토프 크기(~15~25잔기)와 맞음. KD-tree(NeighborSearch)로 빠르게.
+    mode="ca": CA-CA cutoff(옛 방식, 훨씬 헐거움 → 패치가 과도하게 커짐. 비교용으로만)."""
     agc = best_ag_chain(pose, ag_seq)
     if agc is None:
         return set()
     ag_res = [r for r in pose[agc] if "CA" in r]
-    ab_ca = [r["CA"].coord for ch in pose if ch.id != agc for r in ch if "CA" in r]
-    if not ab_ca or not ag_res:
+    if not ag_res:
         return set()
-    ab_ca = np.array(ab_ca)
+    if mode == "ca":
+        ab_ca = [r["CA"].coord for ch in pose if ch.id != agc for r in ch if "CA" in r]
+        if not ab_ca:
+            return set()
+        ab_ca = np.array(ab_ca)
+        return {i + 1 for i, r in enumerate(ag_res)
+                if np.linalg.norm(ab_ca - r["CA"].coord, axis=1).min() <= cutoff}
+    from Bio.PDB import NeighborSearch
+    ab_atoms = [a for ch in pose if ch.id != agc for r in ch for a in r if not _is_h(a)]
+    if not ab_atoms:
+        return set()
+    ns = NeighborSearch(ab_atoms)
     epi = set()
     for i, r in enumerate(ag_res):
-        if np.linalg.norm(ab_ca - r["CA"].coord, axis=1).min() <= extract_dist:
-            epi.add(i + 1)                       # 1-based 서열 위치
+        for a in r:
+            if _is_h(a):
+                continue
+            if ns.search(a.coord, cutoff, level="A"):
+                epi.add(i + 1)
+                break
     return epi
 
 
@@ -177,7 +200,9 @@ def main():
     ap.add_argument("--kmeans", type=int, default=0, help=">0이면 pose 에피토프를 K개로 클러스터(표면 전역 K개 후보 자리). 저번 HADDOCK-guided 방식")
     ap.add_argument("--union", action="store_true", help="추출 패치들을 하나로 합쳐 단일 제약(넓게)")
     ap.add_argument("--max-patches", type=int, default=1, help="union 아닐 때 pose별 패치 최대 개수")
-    ap.add_argument("--extract-dist", type=float, default=10.0, help="에피토프 추출: 항원 CA가 항체 CA와 이 거리(Å) 내")
+    ap.add_argument("--contact-mode", default="heavy", choices=["heavy", "ca"], help="계면 판정. heavy=표준(heavy atom 거리), ca=옛방식(헐거움)")
+    ap.add_argument("--extract-dist", type=float, default=5.0, help="계면 컷오프(Å). heavy면 5.0 권장(=표준 에피토프), ca면 10.0")
+    ap.add_argument("--merge-overlap", type=float, default=0.5, help="자리 병합 기준(Jaccard). 이보다 많이 겹치면 같은 자리로 봄")
     ap.add_argument("--max-distance", type=float, default=6.0, help="co-folder pocket 제약 거리(Å)")
     ap.add_argument("--min-contacts", type=int, default=4)
     ap.add_argument("--soft", action="store_true", help="Boltz force:false(소프트). 기본=force:true")
@@ -203,7 +228,7 @@ def main():
             ranked = []
             for rank, p in enumerate(poses):
                 try:
-                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist)
+                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist, a.contact_mode)
                 except Exception:
                     continue
                 if len(epi) >= a.min_contacts:
@@ -219,12 +244,12 @@ def main():
             patches = []
             for p in poses:
                 try:
-                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist)
+                    epi = antigen_epitope(load_pdb(p), ag_seq, a.extract_dist, a.contact_mode)
                 except Exception as e:
                     print(f"  {t} {os.path.basename(p)} 파싱 실패: {e}"); continue
                 if len(epi) < a.min_contacts:
                     continue
-                if any(len(epi & q) / max(1, len(epi | q)) > 0.8 for q in patches):
+                if any(len(epi & q) / max(1, len(epi | q)) > a.merge_overlap for q in patches):
                     continue                       # dedup Jaccard>0.8
                 patches.append(epi)
                 if not a.union and len(patches) >= a.max_patches:
