@@ -78,7 +78,7 @@ def parse_scores(zout):
                 pass
     return scores
 
-def run_target(tid, zdir, rd, out_dir):
+def run_target(tid, zdir, rd, out_dir, no_score=False):
     od = os.path.abspath(os.path.join(zdir, tid))
     ab = os.path.join(od, "antibody.pdb"); ag = os.path.join(od, "antigen.pdb"); blk = os.path.join(od, "block_noncdr.txt")
     if not all(os.path.exists(x) for x in (ab, ag, blk)):
@@ -109,6 +109,9 @@ def run_target(tid, zdir, rd, out_dir):
     scores = parse_scores(zout)
     if not poses:
         print(f"  {tid}: create.pl pose 없음"); return None
+    if no_score:
+        # 힌트 추출용 대량 재생성 모드: pose만 만들고 DockQ는 건너뜀(기존 채점표 보존)
+        print(f"  {tid:8} pose {len(poses):4}개 생성 (DockQ 채점 skip)"); return None
 
     rows = []
     with tempfile.TemporaryDirectory() as td:
@@ -149,8 +152,10 @@ def main():
     ap.add_argument("--zdir", default="zdock")
     ap.add_argument("--out", default="results/zdock_dockq.csv")
     ap.add_argument("--only", help="쉼표구분 PDB id")
+    ap.add_argument("--no-score", action="store_true",
+                    help="pose만 생성하고 DockQ 채점 skip. 힌트 추출용으로 -N 1000 등 대량 재생성할 때 사용(기존 zdock_dockq.csv 보존)")
     a = ap.parse_args()
-    if subprocess.run(["which", "DockQ"], capture_output=True).returncode != 0:
+    if not a.no_score and subprocess.run(["which", "DockQ"], capture_output=True).returncode != 0:
         raise SystemExit("!! DockQ 없음 — DockQ 있는 env(예: boltz)에서 실행")
     only = set(x.upper() for x in a.only.split(",")) if a.only else None
     out_dir = os.path.dirname(a.out) or "."; os.makedirs(out_dir, exist_ok=True)
@@ -167,9 +172,12 @@ def main():
         rd = os.path.join(a.runs, tid)
         if not os.path.isdir(rd):
             print(f"  {tid}: runs_diverse/{tid} 없음"); continue
-        r = run_target(tid, a.zdir, rd, out_dir)
+        r = run_target(tid, a.zdir, rd, out_dir, a.no_score)
         if r:
             rows.append(r)
+    if a.no_score:
+        print("\n→ pose 생성만 완료(채점 skip). 기존 결과표는 그대로. 다음: zdock_to_pocket.py 로 힌트 추출")
+        return
     with open(a.out, "w", newline="") as f:
         cols = ["target", "n_pose", "oracle_dockq", "oracle_rank", "scorepick_dockq", "regret", "best_score"]
         w = csv.DictWriter(f, fieldnames=cols); w.writeheader(); w.writerows(rows)
