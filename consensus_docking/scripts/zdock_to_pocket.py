@@ -233,7 +233,7 @@ def main():
                 print(f"{t}: 유효 패치 없음(min-contacts={a.min_contacts}) skip"); continue
             if a.union:
                 patches = [set().union(*patches)]
-            src = f"top{a.topn} pose" + (" union" if a.union else "")
+            src = ("전체 pose에서 서로 다른 자리" if a.topn == 0 else f"top{a.topn} pose") + (" union" if a.union else "")
 
         outd = os.path.join(a.outdir, t.lower()); os.makedirs(outd, exist_ok=True)
         wrote_fasta = [False]
