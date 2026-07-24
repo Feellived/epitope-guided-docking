@@ -53,7 +53,7 @@ for T in $TARGETS; do
         [ -e "$y" ] || continue; pk=$(basename "$y" .yaml | sed 's/.*_//'); od="results_$pk"
         if find "$d/$od" -name '*_model_*.cif' 2>/dev/null | grep -q .; then say "skip $T $pk (있음)"; continue; fi
         say "boltz-guided $T $pk (samples=$SAMP) ..."
-        ( cd "$d" && boltz predict "$(basename "$y")" --out_dir "$od" --use_msa_server --diffusion_samples "$SAMP" > "boltz_$pk.log" 2>&1 ) \
+        ( cd "$d" && boltz predict "$(basename "$y")" --out_dir "$od" --use_msa_server --no_kernels --diffusion_samples "$SAMP" > "boltz_$pk.log" 2>&1 ) \
           && say "  OK $T $pk" || { say "  !! $T $pk 실패 → $d/boltz_$pk.log"; tail -5 "$d/boltz_$pk.log"; }
         [ "$SMOKE" = "1" ] && { say "SMOKE 종료. 확인: find $d/$od -name '*_model_*.cif'"; exit 0; }
       done ;;
