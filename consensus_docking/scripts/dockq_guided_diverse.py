@@ -16,10 +16,12 @@ import argparse, csv, glob, os, tempfile
 from haddock_dockq_diverse import load_any, write_merged, dockq, best_ag_chain, target_info, DIVERSE
 
 # 모델별 (blind 하위폴더, pose glob, guided 하위폴더 패턴)
+# blind 하위폴더는 실행 갈래마다 이름이 달라 여러 후보를 순서대로 시도한다
+# (Boltz는 이 세트에서 out_boltz가 아니라 results_boltz로 저장됨)
 SPEC = {
-    "boltz":    ("out_boltz",    "*_model_*.cif",  "results_patch*"),
-    "protenix": ("out_protenix", "*_sample_*.cif", "results_patch*"),
-    "tfold":    ("out_tfold",    "*.pdb",          "out_tfold_patch*"),
+    "boltz":    (("out_boltz", "results_boltz"),        "*_model_*.cif",  "results_patch*"),
+    "protenix": (("out_protenix", "results_protenix"),  "*_sample_*.cif", "results_patch*"),
+    "tfold":    (("out_tfold", "results_tfold"),         "*.pdb",          "out_tfold_patch*"),
 }
 COLS = ["target", "model", "blind_best", "guided_best", "diff", "n_blind", "n_guided"]
 
@@ -73,7 +75,8 @@ def main():
     done = {} if a.force else load_done(out)
     if done:
         print(f"[resume] skip {len(done)}: {', '.join(done)}")
-    print(f"[guided {a.model} | blind={a.run_dir}/*/{blind_sub} vs guided={a.guided_dir}/*/{guided_sub}]")
+    blind_names = "/".join(blind_sub) if isinstance(blind_sub, tuple) else blind_sub
+    print(f"[guided {a.model} | blind={a.run_dir}/*/({blind_names}) vs guided={a.guided_dir}/*/{guided_sub}]")
     print(f"{'target':8}{'blind':>9}{'guided':>9}{'diff':>9}  (n_blind/n_guided)")
     print("-" * 52)
     for t in a.targets.split():
@@ -83,7 +86,9 @@ def main():
         ni = target_info(t, a.run_dir)
         if ni is None or ni["native"] is None:
             print(f"{t:8} native 없음 skip"); continue
-        blind = glob.glob(os.path.join(a.run_dir, t.lower(), blind_sub, "**", pose_glob), recursive=True)
+        blind = []
+        for sub in (blind_sub if isinstance(blind_sub, tuple) else (blind_sub,)):
+            blind += glob.glob(os.path.join(a.run_dir, t.lower(), sub, "**", pose_glob), recursive=True)
         guided = glob.glob(os.path.join(a.guided_dir, t.lower(), guided_sub, "**", pose_glob), recursive=True)
         if not guided:
             print(f"{t:8} guided pose 없음(미실행) skip"); continue
