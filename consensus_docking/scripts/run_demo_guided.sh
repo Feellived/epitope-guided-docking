@@ -22,6 +22,7 @@
 #   bash scripts/run_demo_guided.sh 8k3k_D
 #   METHOD=manual PICK=1 bash scripts/run_demo_guided.sh 8k3k_D    # 사람이 고른 경우
 #   MODELS="boltz protenix" bash scripts/run_demo_guided.sh 8k3k_D   # 두 모델 다
+#   ARMS=ours bash scripts/run_demo_guided.sh "8sit_HL 8t4d_OQ"      # 값싼 훑기(우리 팔만)
 # env: MSAD(msa-depth pipeline 경로) MODELS METHOD PICK SCORES SAMP SEEDS BOLTZ_ENV PROT_ENV OUTDIR
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
@@ -40,6 +41,8 @@ PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
 MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"
 OUTDIR="${OUTDIR:-runs_sites_guided}"
 SEED="${SEED:-42}"
+# 돌릴 팔. 값싼 사전 훑기는 ARMS=ours 로 (다섯 팔 다 돌리지 않고 우리 팔만 본다).
+ARMS="${ARMS:-noconstraint fullmsa sizematch ours}"
 [ "$SMOKE" = "1" ] && { SAMP=1; SEEDS="42"; }
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 
@@ -75,7 +78,7 @@ for T in $TARGETS; do
   [ -n "$CAND" ] || { say "!! 후보 번호를 못 받았다"; continue; }
 
   # ── ③ 유도 입력 (네 팔, 위 머리말 참조) ────────────────────────────────────
-  for ARM in noconstraint fullmsa sizematch ours; do
+  for ARM in $ARMS; do
     A_ARGS=(--sites "$SITES" --chains "$CHAINS" --arm "$ARM" --emit "${MODELS// /,}" --outdir "$OUTDIR")
     case "$ARM" in ours|sizematch) A_ARGS+=(--cand "$CAND") ;; esac
     say "[유도입력] $ARM"
@@ -91,7 +94,7 @@ for T in $TARGETS; do
                 export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
                 command -v protenix >/dev/null || { say "!! protenix 없음 — 건너뜀"; continue; } ;;
     esac
-    for ARM in noconstraint fullmsa sizematch ours; do
+    for ARM in $ARMS; do
       D="$OUTDIR/${T,,}/$ARM"
       case "$M" in
         boltz)    IN="$D/boltz_${T,,}_patch0.yaml" ;;
