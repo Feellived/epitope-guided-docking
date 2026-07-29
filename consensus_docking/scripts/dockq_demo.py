@@ -16,7 +16,7 @@
 """
 import argparse, csv, glob, json, os, statistics as st, sys, tempfile
 
-ARMS = ["blind", "fullmsa", "sizematch", "ours"]
+ARMS = ["blind", "noconstraint", "fullmsa", "sizematch", "ours"]
 
 
 def load_pf(msad):

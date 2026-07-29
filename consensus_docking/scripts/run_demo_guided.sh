@@ -5,21 +5,23 @@
 # 흐름 (한 타깃):
 #   ① 생성  bk21-msa-depth-bias 본 검정 결과 = results/sites_<타깃>.json  (이미 있어야 함)
 #   ② 선택  rank_sites.py  → 후보 하나 (정답 구조를 보지 않음. --method manual 은 예외)
-#   ③ 유도  sites_to_pocket.py → co-folder pocket 제약 입력 (두 팔)
+#   ③ 유도  sites_to_pocket.py → co-folder pocket 제약 입력 (네 팔)
 #   ④ 실행  boltz / protenix 를 blind 와 **같은 커맨드**로, 제약만 붙여서
-#   ⑤ 채점  dockq_demo.py 로 세 팔 비교
+#   ⑤ 채점  dockq_demo.py 로 다섯 팔 비교
 #
-# 세 팔:
-#   (a) blind   제약 없음 — msa-depth 의 원래 MSA 예측을 그대로 쓴다(여기서 안 돌림)
-#   (b) fullmsa 원래 MSA 가 간 자리로 유도  ← 핵심 대조
-#   (c) ours    우리가 고른 후보로 유도
-#   판정은 (c) > (b). (c) > (a) 만으로는 '제약을 주면 좋아진다'와 구별이 안 된다.
+# 다섯 팔 — 하나씩 다른 설명을 배제한다:
+#   (a) blind        msa-depth 본 검정의 원래 MSA 예측(protenix). 여기서 돌리지 않는다
+#   (b) noconstraint 제약 없음. **같은 모델·같은 MSA 경로·같은 예산** → 모델/MSA 출처 차이를 배제
+#   (c) fullmsa      원래 MSA 가 간 자리로 유도 → '제약을 주면 좋아진다'를 배제
+#   (d) sizematch    (c)를 무작위 잔기로 (e)와 같은 크기까지 늘림 → '넓어서 좋아진다'를 배제
+#   (e) ours         우리가 고른 후보로 유도
+#   판정은 (e) > (d) > (c). 여기까지 이기면 남는 설명은 '자리가 옳았다' 하나다.
 #
 # 사용(consensus_docking/ 에서):
 #   SMOKE=1 bash scripts/run_demo_guided.sh 8k3k_D                 # 1샘플로 배관 확인
 #   bash scripts/run_demo_guided.sh 8k3k_D
 #   METHOD=manual PICK=1 bash scripts/run_demo_guided.sh 8k3k_D    # 사람이 고른 경우
-#   MODELS=boltz bash scripts/run_demo_guided.sh "8k3k_D 8sit_HL"
+#   MODELS="boltz protenix" bash scripts/run_demo_guided.sh 8k3k_D   # 두 모델 다
 # env: MSAD(msa-depth pipeline 경로) MODELS METHOD PICK SCORES SAMP SEEDS BOLTZ_ENV PROT_ENV OUTDIR
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
@@ -72,14 +74,10 @@ for T in $TARGETS; do
   CAND=$(echo "$OUT" | sed -n 's/^PICK=\([0-9]*\)$/\1/p' | tail -1)
   [ -n "$CAND" ] || { say "!! 후보 번호를 못 받았다"; continue; }
 
-  # ── ③ 유도 입력 (세 팔) ────────────────────────────────────────────────────
-  #   fullmsa   원래 MSA 가 간 자리
-  #   sizematch 그 자리를 무작위 잔기로 우리 후보와 **같은 크기**까지 늘린 것
-  #             (넓어서 이긴 것인지 자리가 옳아서 이긴 것인지를 가른다)
-  #   ours      우리가 고른 후보
-  for ARM in fullmsa sizematch ours; do
+  # ── ③ 유도 입력 (네 팔, 위 머리말 참조) ────────────────────────────────────
+  for ARM in noconstraint fullmsa sizematch ours; do
     A_ARGS=(--sites "$SITES" --chains "$CHAINS" --arm "$ARM" --emit "${MODELS// /,}" --outdir "$OUTDIR")
-    [ "$ARM" = "ours" ] || [ "$ARM" = "sizematch" ] && A_ARGS+=(--cand "$CAND")
+    case "$ARM" in ours|sizematch) A_ARGS+=(--cand "$CAND") ;; esac
     say "[유도입력] $ARM"
     python scripts/sites_to_pocket.py "${A_ARGS[@]}" || say "  ! $ARM 입력 생성 실패(건너뜀)"
   done
@@ -93,7 +91,7 @@ for T in $TARGETS; do
                 export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
                 command -v protenix >/dev/null || { say "!! protenix 없음 — 건너뜀"; continue; } ;;
     esac
-    for ARM in fullmsa sizematch ours; do
+    for ARM in noconstraint fullmsa sizematch ours; do
       D="$OUTDIR/${T,,}/$ARM"
       case "$M" in
         boltz)    IN="$D/boltz_${T,,}_patch0.yaml" ;;
@@ -131,4 +129,4 @@ for T in $TARGETS; do
 done
 
 echo
-say "채점:  conda activate DockQ && python scripts/dockq_demo.py --targets \"$TARGETS\" --outdir $OUTDIR"
+say "채점:  conda activate boltz && python scripts/dockq_demo.py --targets \"$TARGETS\" --outdir $OUTDIR"

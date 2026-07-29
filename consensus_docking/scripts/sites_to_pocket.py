@@ -95,9 +95,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sites", required=True, help="msa-depth results/sites_<타깃>.json")
     ap.add_argument("--chains", required=True, help="msa-depth targets/<타깃>/chains.json")
-    ap.add_argument("--arm", required=True, choices=["ours", "fullmsa", "all", "sizematch"],
+    ap.add_argument("--arm", required=True,
+                    choices=["ours", "fullmsa", "all", "sizematch", "noconstraint"],
                     help="all = 후보 전부 방출(AbEpiTope 사전 스크리닝용). 파일명은 patch<후보번호>. "
-                         "sizematch = 크기 맞춘 대조군(아래 설명)")
+                         "sizematch = 크기 맞춘 대조군. noconstraint = 제약 없는 같은 모델 기준선")
     ap.add_argument("--seed", type=int, default=0, help="sizematch 의 무작위 씨앗(재현용)")
     ap.add_argument("--cand", type=int, default=0,
                     help="--arm ours 일 때 쓸 후보 번호. rank_sites.py 의 PICK 값")
@@ -118,6 +119,27 @@ def main():
         for c in d["candidates"]:
             n += emit_one(a, d, t, c, chains, ag_ids, ab_ids, k=c["cand"])
         print(f"{t} [all] 후보 {n}개 방출 → {os.path.join(a.outdir, t.lower(), 'all')}/")
+        return
+
+    if a.arm == "noconstraint":
+        # ── 제약 없는 기준선 (같은 모델·같은 MSA 경로·같은 예산) ──────────────
+        # 왜 필요한가: msa-depth 의 blind 실행은 protenix 이고 MSA 도 자체 a3m 이다. 그래서
+        # boltz 로 유도한 팔과 견주면 '모델이 달라서'와 'MSA 출처가 달라서'가 섞인다.
+        # 여기서 같은 모델·같은 경로로 제약만 뺀 실행을 만들면 네 팔이 완전히 맞춰진다.
+        outd = os.path.join(a.outdir, t.lower(), a.arm)
+        os.makedirs(outd, exist_ok=True)
+        emit_l = [e.strip() for e in a.emit.replace(",", " ").split()]
+        if "boltz" in emit_l:
+            L = ["version: 1", "sequences:"]
+            for ch in chains:
+                L.append(f'  - protein: {{ id: {ch["id"]}, sequence: "{ch["seq"]}" }}')
+            open(os.path.join(outd, f"boltz_{t.lower()}_patch0.yaml"), "w").write("\n".join(L) + "\n")
+        if "protenix" in emit_l:
+            job = {"name": t.lower(),
+                   "sequences": [{"proteinChain": {"sequence": ch["seq"], "count": 1}} for ch in chains]}
+            json.dump([job], open(os.path.join(outd, f"protenix_{t.lower()}_patch0.json"), "w"), indent=2)
+        print(f"{t} [noconstraint] 제약 없음 · 사슬 {len(chains)}개 · emit={emit_l}")
+        print(f"  → {outd}/")
         return
 
     if a.arm == "sizematch":
