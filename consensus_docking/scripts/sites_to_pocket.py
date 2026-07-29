@@ -46,11 +46,57 @@ def load_chains(path):
     return chains, ag_ids, ab_ids
 
 
+def emit_one(a, d, t, c, chains, ag_ids, ab_ids, k):
+    """후보 하나 → co-folder 입력. 파일명 접미사 patch<k>. 성공 1 / 건너뜀 0."""
+    emit = [e.strip() for e in a.emit.replace(",", " ").split()]
+
+    # (사슬 순번, 0-based) → 사슬 id 별 1-based 위치
+    bych = {}
+    for ordi, pos0 in c["residues"]:
+        if ordi >= len(ag_ids):
+            print(f"  ! 후보 {c['cand']}: 항원 사슬 순번 {ordi} 가 chains.json 의 항원 수"
+                  f"({len(ag_ids)})를 넘는다 — 건너뜀")
+            return 0
+        bych.setdefault(ag_ids[ordi], []).append(int(pos0) + 1)
+    if not bych:
+        print(f"  ! 후보 {c['cand']}: 잔기가 없다 — 건너뜀")
+        return 0
+
+    if len(bych) > 1:
+        # emit_* 는 pocket contacts 를 사슬 하나로 받는다. 항원이 여러 사슬이면 잔기가 가장 많은
+        # 사슬만 쓰고 그 사실을 알린다(데모 타깃은 단일 항원 사슬로 고르는 것을 권장).
+        keep = max(bych, key=lambda x: len(bych[x]))
+        print(f"  ⚠️ 항원 사슬이 여러 개다({', '.join(bych)}) — 잔기가 가장 많은 {keep} 만 제약으로 쓴다 "
+              f"({len(bych[keep])}/{sum(len(v) for v in bych.values())}잔기).")
+        bych = {keep: bych[keep]}
+
+    ag = list(bych)[0]
+    pos = sorted(bych[ag])
+    binder = ab_ids[0]
+    outd = os.path.join(a.outdir, t.lower(), a.arm)
+    os.makedirs(outd, exist_ok=True)
+    seqmap = {ch["id"]: ch["seq"] for ch in chains}
+    wrote = [False]
+    if "boltz" in emit:
+        emit_boltz(outd, t, chains, ag, binder, pos, a.max_distance, a.soft, k)
+    if "protenix" in emit:
+        emit_protenix(outd, t, chains, ag, binder, pos, a.max_distance, k)
+    if "tfold" in emit:
+        emit_tfold(outd, t, seqmap, ag, ab_ids, pos, k, wrote)
+
+    print(f"{t} [{a.arm}] 후보 {c['cand']} (patch{k}) · 항원 {ag} {len(pos)}잔기 · binder {binder} "
+          f"· force={'false' if a.soft else 'true'} · emit={emit}")
+    print(f"  잔기(1-based): {','.join(map(str, pos[:40]))}{' ...' if len(pos) > 40 else ''}")
+    print(f"  → {outd}/")
+    return 1
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sites", required=True, help="msa-depth results/sites_<타깃>.json")
     ap.add_argument("--chains", required=True, help="msa-depth targets/<타깃>/chains.json")
-    ap.add_argument("--arm", required=True, choices=["ours", "fullmsa"])
+    ap.add_argument("--arm", required=True, choices=["ours", "fullmsa", "all"],
+                    help="all = 후보 전부 방출(AbEpiTope 사전 스크리닝용). 파일명은 patch<후보번호>")
     ap.add_argument("--cand", type=int, default=0,
                     help="--arm ours 일 때 쓸 후보 번호. rank_sites.py 의 PICK 값")
     ap.add_argument("--emit", default="boltz,protenix")
@@ -63,6 +109,14 @@ def main():
     d = json.load(open(a.sites))
     t = d["target"]
     chains, ag_ids, ab_ids = load_chains(a.chains)
+
+    if a.arm == "all":
+        # 후보 전부 — AbEpiTope 사전 스크리닝(후보마다 값싸게 한 번 모델링해 계면을 채점)용.
+        n = 0
+        for c in d["candidates"]:
+            n += emit_one(a, d, t, c, chains, ag_ids, ab_ids, k=c["cand"])
+        print(f"{t} [all] 후보 {n}개 방출 → {os.path.join(a.outdir, t.lower(), 'all')}/")
+        return
 
     if a.arm == "fullmsa":
         c = next((x for x in d["candidates"] if x["from_full_msa"]), None)
@@ -78,40 +132,7 @@ def main():
             print(f"  ⚠️ 고른 후보 {a.cand} 에 원래 MSA 가 포함돼 있다 — (b)와 같은 자리라 "
                   f"이 타깃은 데모로 부적합하다(대조와 구별이 안 됨).")
 
-    # (사슬 순번, 0-based) → 사슬 id 별 1-based 위치
-    bych = {}
-    for ordi, pos0 in c["residues"]:
-        if ordi >= len(ag_ids):
-            sys.exit(f"!! 항원 사슬 순번 {ordi} 가 chains.json 의 항원 수({len(ag_ids)})를 넘는다")
-        bych.setdefault(ag_ids[ordi], []).append(int(pos0) + 1)
-
-    if len(bych) > 1:
-        # emit_* 는 pocket contacts 를 사슬 하나로 받는다. 항원이 여러 사슬이면 잔기가 가장 많은
-        # 사슬만 쓰고 그 사실을 알린다(데모 타깃은 단일 항원 사슬로 고르는 것을 권장).
-        keep = max(bych, key=lambda k: len(bych[k]))
-        print(f"  ⚠️ 항원 사슬이 여러 개다({', '.join(bych)}) — 잔기가 가장 많은 {keep} 만 제약으로 쓴다 "
-              f"({len(bych[keep])}/{sum(len(v) for v in bych.values())}잔기).")
-        bych = {keep: bych[keep]}
-
-    ag = list(bych)[0]
-    pos = sorted(bych[ag])
-    binder = ab_ids[0]
-    outd = os.path.join(a.outdir, t.lower(), a.arm)
-    os.makedirs(outd, exist_ok=True)
-    k = 0                      # 팔마다 자리 하나만 쓴다(패치 여러 개를 훑는 실험이 아니다)
-    seqmap = {ch["id"]: ch["seq"] for ch in chains}
-    wrote = [False]
-    if "boltz" in emit:
-        emit_boltz(outd, t, chains, ag, binder, pos, a.max_distance, a.soft, k)
-    if "protenix" in emit:
-        emit_protenix(outd, t, chains, ag, binder, pos, a.max_distance, k)
-    if "tfold" in emit:
-        emit_tfold(outd, t, seqmap, ag, ab_ids, pos, k, wrote)
-
-    print(f"{t} [{a.arm}] 후보 {c['cand']} · 항원 {ag} {len(pos)}잔기 · binder {binder} "
-          f"· force={'false' if a.soft else 'true'} · emit={emit}")
-    print(f"  잔기(1-based): {','.join(map(str, pos[:40]))}{' ...' if len(pos) > 40 else ''}")
-    print(f"  → {outd}/")
+    emit_one(a, d, t, c, chains, ag_ids, ab_ids, k=0)
 
 
 if __name__ == "__main__":
