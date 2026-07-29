@@ -44,6 +44,19 @@ for T in $TARGETS; do
   [ -f "$SITES" ]  || { say "!! $SITES 없음 — 먼저 msa-depth 에서: bash analyze_target.sh $T"; continue; }
   [ -f "$CHAINS" ] || { say "!! $CHAINS 없음"; continue; }
 
+  # ── ②-0 DiscoTope 점수가 필요한데 없으면 먼저 만든다 (GPU 불필요) ──────────
+  if [ "$METHOD" = "discotope" ] && [ -z "$SCORES" ]; then
+    SCORES="results/discotope_${T}.csv"
+    if [ -s "$SCORES" ]; then
+      say "[점수] $SCORES 이미 있음 — 재사용"
+    else
+      say "[점수] DiscoTope-3.0 실행 (항원 단독 구조, MSA 안 씀)"
+      python scripts/run_discotope.py --target "$T" ${DISCO_REPO:+--repo "$DISCO_REPO"} \
+             ${DISCO_PY:+--python "$DISCO_PY"} --out "$SCORES" \
+        || { say "!! DiscoTope 실패 — METHOD=ncomp 로 내려간다"; METHOD=ncomp; SCORES=""; }
+    fi
+  fi
+
   # ── ② 선택 ─────────────────────────────────────────────────────────────────
   say "[선택] rank_sites.py --method $METHOD"
   RS_ARGS=(--sites "$SITES" --method "$METHOD" --out "$OUTDIR/${T,,}/pick.json")
