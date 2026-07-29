@@ -72,10 +72,14 @@ for T in $TARGETS; do
   CAND=$(echo "$OUT" | sed -n 's/^PICK=\([0-9]*\)$/\1/p' | tail -1)
   [ -n "$CAND" ] || { say "!! 후보 번호를 못 받았다"; continue; }
 
-  # ── ③ 유도 입력 (두 팔) ────────────────────────────────────────────────────
-  for ARM in fullmsa ours; do
+  # ── ③ 유도 입력 (세 팔) ────────────────────────────────────────────────────
+  #   fullmsa   원래 MSA 가 간 자리
+  #   sizematch 그 자리를 무작위 잔기로 우리 후보와 **같은 크기**까지 늘린 것
+  #             (넓어서 이긴 것인지 자리가 옳아서 이긴 것인지를 가른다)
+  #   ours      우리가 고른 후보
+  for ARM in fullmsa sizematch ours; do
     A_ARGS=(--sites "$SITES" --chains "$CHAINS" --arm "$ARM" --emit "${MODELS// /,}" --outdir "$OUTDIR")
-    [ "$ARM" = "ours" ] && A_ARGS+=(--cand "$CAND")
+    [ "$ARM" = "ours" ] || [ "$ARM" = "sizematch" ] && A_ARGS+=(--cand "$CAND")
     say "[유도입력] $ARM"
     python scripts/sites_to_pocket.py "${A_ARGS[@]}" || say "  ! $ARM 입력 생성 실패(건너뜀)"
   done
@@ -89,7 +93,7 @@ for T in $TARGETS; do
                 export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
                 command -v protenix >/dev/null || { say "!! protenix 없음 — 건너뜀"; continue; } ;;
     esac
-    for ARM in fullmsa ours; do
+    for ARM in fullmsa sizematch ours; do
       D="$OUTDIR/${T,,}/$ARM"
       case "$M" in
         boltz)    IN="$D/boltz_${T,,}_patch0.yaml" ;;

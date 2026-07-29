@@ -26,7 +26,7 @@ co-folder pocket 제약 = (사슬 id, 서열 1-based 위치)
   python scripts/sites_to_pocket.py --sites ... --chains ... --arm fullmsa --emit boltz,protenix
 필요: biopython 불필요(좌표를 안 읽는다). tfold emit 시 torch.
 """
-import argparse, json, os, sys
+import argparse, json, os, random, sys
 
 from zdock_to_pocket import emit_boltz, emit_protenix, emit_tfold
 
@@ -95,8 +95,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sites", required=True, help="msa-depth results/sites_<타깃>.json")
     ap.add_argument("--chains", required=True, help="msa-depth targets/<타깃>/chains.json")
-    ap.add_argument("--arm", required=True, choices=["ours", "fullmsa", "all"],
-                    help="all = 후보 전부 방출(AbEpiTope 사전 스크리닝용). 파일명은 patch<후보번호>")
+    ap.add_argument("--arm", required=True, choices=["ours", "fullmsa", "all", "sizematch"],
+                    help="all = 후보 전부 방출(AbEpiTope 사전 스크리닝용). 파일명은 patch<후보번호>. "
+                         "sizematch = 크기 맞춘 대조군(아래 설명)")
+    ap.add_argument("--seed", type=int, default=0, help="sizematch 의 무작위 씨앗(재현용)")
     ap.add_argument("--cand", type=int, default=0,
                     help="--arm ours 일 때 쓸 후보 번호. rank_sites.py 의 PICK 값")
     ap.add_argument("--emit", default="boltz,protenix")
@@ -118,7 +120,34 @@ def main():
         print(f"{t} [all] 후보 {n}개 방출 → {os.path.join(a.outdir, t.lower(), 'all')}/")
         return
 
-    if a.arm == "fullmsa":
+    if a.arm == "sizematch":
+        # ── 크기 맞춘 대조군 ──────────────────────────────────────────────────
+        # 왜 필요한가: 우리 후보와 원래 MSA 자리는 잔기 수가 다를 수 있다(8k3k_D 는 62 대 43).
+        # 넓은 패치는 우연히 정답과 겹칠 확률이 높으므로, "자리가 옳아서 이겼나 그냥 넓어서 이겼나"가
+        # 갈리지 않는다. 그래서 원래 MSA 자리를 무작위 잔기로 **우리 후보와 같은 크기까지** 늘린
+        # 팔을 만든다. 이것까지 이기면 크기 설명이 배제된다.
+        # ⚠️ 채우는 잔기는 항원 서열에서 무작위로 고른다 — 정답 구조를 보지 않는다.
+        base = next((x for x in d["candidates"] if x["from_full_msa"]), None)
+        tgtc = next((x for x in d["candidates"] if x["cand"] == a.cand), None)
+        if base is None or tgtc is None:
+            sys.exit("!! sizematch 에는 원래 MSA 후보와 --cand <우리 후보> 가 둘 다 필요하다")
+        need = len(tgtc["residues"]) - len(base["residues"])
+        cur = {tuple(x) for x in base["residues"]}
+        if need <= 0:
+            print(f"  원래 MSA 자리({len(cur)})가 이미 우리 후보({len(tgtc['residues'])}) 이상 — 채우지 않는다")
+        else:
+            rng = random.Random(a.seed)
+            lens = {}
+            for i, cid in enumerate(ag_ids):
+                lens[i] = len(next(ch["seq"] for ch in chains if ch["id"] == cid))
+            pool = [(i, p) for i in lens for p in range(lens[i]) if (i, p) not in cur]
+            rng.shuffle(pool)
+            add = pool[:need]
+            cur |= set(add)
+            print(f"  크기 맞춤: 원래 MSA 자리 {len(base['residues'])}잔기 + 무작위 {len(add)}잔기 "
+                  f"= {len(cur)} (우리 후보 {len(tgtc['residues'])}와 동일)")
+        c = dict(base, cand=f"{base['cand']}+무작위", residues=[list(x) for x in sorted(cur)])
+    elif a.arm == "fullmsa":
         c = next((x for x in d["candidates"] if x["from_full_msa"]), None)
         if c is None:
             sys.exit(f"!! {t}: 원래 MSA 가 속한 후보가 없다 — 이 타깃은 (b) 대조군을 만들 수 없다.")
