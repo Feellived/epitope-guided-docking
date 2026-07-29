@@ -28,7 +28,8 @@ T="${1:-}"
 [ -z "$T" ] && { echo "사용: bash scripts/prescreen_abepitope.sh <타깃>"; exit 1; }
 MODEL="${MODEL:-boltz}"                 # 사전 스크리닝은 한 모델이면 충분
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"
-PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
+MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"
+PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"   # blind 팔과 같은 모델
 OUTDIR="${OUTDIR:-runs_sites_guided}"
 SEED="${SEED:-42}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
@@ -63,11 +64,16 @@ for IN in "$ALLD"/${MODEL}_${T,,}_patch*.{yaml,json}; do
   fi
   mkdir -p "$O"
   say "  후보 $K 예측 (1샘플)"
+  # 호출 방식은 comp_x_reps.sh 와 동일하게(검증된 형태). 다르게 부르면 조용히 빈 채로 끝난다.
+  IN_ABS="$(cd "$(dirname "$IN")" && pwd)/$(basename "$IN")"
   case "$MODEL" in
-    boltz)    boltz predict "$IN" --out_dir "$O" --use_msa_server --seed "$SEED" \
-                    --diffusion_samples 1 >>"$O/run.log" 2>&1 || say "    ! 후보 $K 실패" ;;
-    protenix) protenix predict --input "$IN" --out_dir "$O" --seeds "$SEED" \
-                    --model_name "$PROT_MODEL" --n_sample 1 >>"$O/run.log" 2>&1 || say "    ! 후보 $K 실패" ;;
+    boltz)    export BOLTZ_CACHE="${BOLTZ_CACHE:-$MSAD_DATA/boltz_cache}"; mkdir -p "$BOLTZ_CACHE"
+              ( cd "$O" && boltz predict "$IN_ABS" --out_dir results --cache "$BOLTZ_CACHE" \
+                     --no_kernels --use_msa_server --diffusion_samples 1 >run.log 2>&1 ) \
+                || say "    ! 후보 $K 실패 ($O/run.log)" ;;
+    protenix) ( cd "$O" && protenix pred -i "$IN_ABS" -o results -n "$PROT_MODEL" -s "$SEED" -e 1 \
+                     --trimul_kernel torch --triatt_kernel torch --enable_fusion False >run.log 2>&1 ) \
+                || say "    ! 후보 $K 실패 ($O/run.log)" ;;
   esac
   N=$((N+1))
 done

@@ -32,8 +32,12 @@ MODELS="${MODELS:-boltz protenix}"
 METHOD="${METHOD:-ncomp}"; PICK="${PICK:-0}"; SCORES="${SCORES:-}"
 SMOKE="${SMOKE:-0}"; SAMP="${SAMP:-5}"; SEEDS="${SEEDS:-42 43 44 45 46}"
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"
-PROT_MODEL="${PROT_MODEL:-protenix_base_20250630_v1.0.0}"
+# ⚠️ blind 팔(msa-depth 본 검정)이 쓴 것과 **같은 모델**이어야 세 팔 비교가 성립한다.
+#    comp_x_reps.sh 의 기본값과 맞춘다(RBD/본검정 세트 = default).
+PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
+MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"
 OUTDIR="${OUTDIR:-runs_sites_guided}"
+SEED="${SEED:-42}"
 [ "$SMOKE" = "1" ] && { SAMP=1; SEEDS="42"; }
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 
@@ -97,19 +101,26 @@ for T in $TARGETS; do
         say "  $M/$ARM 이미 있음 — 건너뜀"; continue
       fi
       mkdir -p "$O"
-      say "  실행 $M/$ARM (샘플 $SAMP · seed [$SEEDS])"
+      # ⚠️ 호출 방식은 comp_x_reps.sh(이 서버에서 검증된 것)와 똑같이 맞춘다.
+      #    다르게 부르면 조용히 아무것도 안 만들고 끝난다(2026-07-29 실제로 그랬다).
+      #    · protenix 는 'pred -i -o -n -s -e' 이고 커널 플래그가 필요하다
+      #    · boltz 는 --cache 와 --no_kernels 가 필요하다
+      #    · 둘 다 출력 폴더로 cd 한 뒤 -o/--out_dir 를 'results' 로 준다
+      IN_ABS="$(cd "$(dirname "$IN")" && pwd)/$(basename "$IN")"
+      say "  실행 $M/$ARM (샘플 $SAMP · seed $SEED)"
       case "$M" in
         boltz)
-          for S in $SEEDS; do
-            boltz predict "$IN" --out_dir "$O/seed$S" --use_msa_server --seed "$S" \
-                  --diffusion_samples "$SAMP" >>"$O/run.log" 2>&1 || say "    ! seed$S 실패"
-          done ;;
+          export BOLTZ_CACHE="${BOLTZ_CACHE:-$MSAD_DATA/boltz_cache}"; mkdir -p "$BOLTZ_CACHE"
+          ( cd "$O" && boltz predict "$IN_ABS" --out_dir results --cache "$BOLTZ_CACHE" \
+                 --no_kernels --use_msa_server --diffusion_samples "$SAMP" >run.log 2>&1 ) \
+            || say "    ! boltz 실패 — $O/run.log 확인" ;;
         protenix)
-          for S in $SEEDS; do
-            protenix predict --input "$IN" --out_dir "$O/seed$S" --seeds "$S" \
-                  --model_name "$PROT_MODEL" --n_sample "$SAMP" >>"$O/run.log" 2>&1 || say "    ! seed$S 실패"
-          done ;;
+          ( cd "$O" && protenix pred -i "$IN_ABS" -o results -n "$PROT_MODEL" -s "$SEED" -e "$SAMP" \
+                 --trimul_kernel torch --triatt_kernel torch --enable_fusion False >run.log 2>&1 ) \
+            || say "    ! protenix 실패 — $O/run.log 확인" ;;
       esac
+      find "$O/results" -name '*.cif' 2>/dev/null | grep -q . \
+        || say "    ! 산출물이 없다 — $O/run.log 의 마지막 줄을 볼 것"
     done
   done
   say "$T 끝 → $OUTDIR/${T,,}/"
