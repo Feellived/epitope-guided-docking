@@ -65,7 +65,8 @@ def main():
     ap.add_argument("--msad-data", default="/mnt/data/admuser/msadepth")
     ap.add_argument("--models", default="boltz protenix")
     ap.add_argument("--cutoff", type=float, default=5.0)
-    ap.add_argument("--by", choices=["dockq", "recall"], default="dockq")
+    ap.add_argument("--by", choices=["dockq", "recall", "both"], default="both",
+                   help="자세를 고르는 기준. both = 두 기준의 최고를 각각 렌더링(채점은 한 번만)")
     ap.add_argument("--surface", action="store_true", help="항원을 표면으로 (에피토프가 더 잘 보인다)")
     ap.add_argument("--width", type=int, default=1400)
     ap.add_argument("--height", type=int, default=1100)
@@ -103,11 +104,13 @@ def main():
 
         with tempfile.TemporaryDirectory() as td:
             natm = PF.native_merged(cj, native, td)
+            crits = ["dockq", "recall"] if a.by == "both" else [a.by]
             for arm in arms:
                 ps = arm_poses(a, t, arm, sj, models)
                 if not ps:
                     print(f"{t} / {arm}: 자세 없음 — 건너뜀"); continue
-                best = None
+                # ── 채점은 팔마다 한 번만. 두 기준의 최고를 그 결과에서 각각 고른다 ──
+                scored = []
                 for path, mlab in ps:
                     try:
                         met = PF.pose_all_metrics(cj, path, a.cutoff, true, pop)
@@ -115,33 +118,35 @@ def main():
                         dq = PF.dockq(pm, natm) if pm else None
                     except Exception:
                         continue
-                    rc = (met or {}).get("recall")
-                    key = dq if a.by == "dockq" else rc
-                    if key is None:
-                        continue
-                    if best is None or key > best[0]:
-                        best = (key, dq, rc, path, mlab)
-                if best is None:
+                    scored.append((dq, (met or {}).get("recall"), path, mlab))
+                if not scored:
                     print(f"{t} / {arm}: 채점된 자세 없음 — 건너뜀"); continue
-                _, dq, rc, path, mlab = best
-                png = os.path.join(a.outpng, f"demo_{t}_{arm}.png")
-                cap = (f"{t}  |  {ARM_EN.get(arm, arm)}  |  {mlab}  |  "
-                       f"DockQ={dq:.3f}  epitope-recall={rc:.3f}  (ceiling)")
-                print(f"{t:10}{arm:14}{mlab:9}DockQ={dq:.3f}  recall={rc:.3f}  {path}")
-                picked.append(dict(target=t, arm=arm, model=mlab,
-                                   dockq=f"{dq:.4f}", recall=f"{rc:.4f}",
-                                   pose=path, png=png))
-                if a.dry_run:
-                    continue
-                cl = [a.pymol, "-cq", pose_script, "--", "--pred", path,
-                      "--native", native, "--chains", cjp, "--out", png,
-                      "--label", cap, "--width", str(a.width), "--height", str(a.height)]
-                if a.surface:
-                    cl.append("--surface")
-                r = subprocess.run(cl, capture_output=True, text=True)
-                if not os.path.exists(png):
-                    print(r.stdout[-600:]); print(r.stderr[-600:])
-                    sys.exit(f"!! 렌더링 실패 {t}/{arm}. pymol 설치 확인: {a.pymol} -cq -d 'print(1)'")
+                for crit in crits:
+                    i = 0 if crit == "dockq" else 1
+                    cand = [x for x in scored if x[i] is not None]
+                    if not cand:
+                        print(f"{t} / {arm}: {crit} 값이 없다 — 건너뜀"); continue
+                    dq, rc, path, mlab = max(cand, key=lambda x: x[i])
+                    sfx = "dq" if crit == "dockq" else "rc"
+                    png = os.path.join(a.outpng, f"demo_{t}_{arm}_{sfx}.png")
+                    cap = (f"{t} | {ARM_EN.get(arm, arm)} | {mlab} | "
+                           f"DockQ={dq:.3f} recall={rc:.3f} | best-{sfx} of {len(scored)} (ceiling)")
+                    print(f"{t:10}{arm:14}{crit:7}{mlab:9}"
+                          f"DockQ={dq:.3f} recall={rc:.3f}  n={len(scored):>3}  {path}")
+                    picked.append(dict(target=t, arm=arm, crit=crit, model=mlab,
+                                       dockq=f"{dq:.4f}", recall=f"{rc:.4f}",
+                                       n_pose=len(scored), pose=path, png=png))
+                    if a.dry_run:
+                        continue
+                    cl = [a.pymol, "-cq", pose_script, "--", "--pred", path,
+                          "--native", native, "--chains", cjp, "--out", png,
+                          "--label", cap, "--width", str(a.width), "--height", str(a.height)]
+                    if a.surface:
+                        cl.append("--surface")
+                    r = subprocess.run(cl, capture_output=True, text=True)
+                    if not os.path.exists(png):
+                        print(r.stdout[-600:]); print(r.stderr[-600:])
+                        sys.exit(f"!! 렌더링 실패 {t}/{arm}. pymol 확인: {a.pymol} -cq -d 'print(1)'")
 
     if not picked:
         sys.exit("!! 고른 자세가 없다. --outdir / --msad-data 경로를 볼 것.")
@@ -150,6 +155,33 @@ def main():
         w = csv.DictWriter(fh, fieldnames=list(picked[0])); w.writeheader(); w.writerows(picked)
     print(f"\n→ 고른 자세 목록: {a.csv}")
 
+    # ── 전/후 한눈 표 (그림을 안 열어도 판정이 보이게) ──
+    for crit, lab in (("dockq", "DockQ"), ("recall", "자리 겹침")):
+        rows = [x for x in picked if x["crit"] == crit]
+        if not rows:
+            continue
+        key = "dockq" if crit == "dockq" else "recall"
+        print(f"\n■ {lab} — 각 팔의 최고값 (정답을 보고 고른 천장)")
+        print(f"{'복합체':<11}" + "".join(f"{ARM_EN.get(x, x):>21}" for x in arms) + "   전/후 판정")
+        for t in sorted({x["target"] for x in rows}):
+            cells, v = "", {}
+            for arm in arms:
+                m = [x for x in rows if x["target"] == t and x["arm"] == arm]
+                v[arm] = float(m[0][key]) if m else None
+                cells += f"{(f'{v[arm]:.3f}' if v[arm] is not None else '-'):>21}"
+            o, b = v.get("ours"), v.get("blind")
+            f_ = v.get("fullmsa")
+            if o is None or b is None:
+                jd = "-"
+            elif f_ is not None:
+                jd = "개선(대조도 넘음)" if o > b and o > f_ else (
+                     "개선(대조는 못 넘음)" if o > b else "악화 또는 무차이")
+            else:
+                jd = "개선" if o > b else "악화 또는 무차이"
+            print(f"{t:<11}{cells}   {jd}")
+    print("\n※ '대조'는 원래 MSA가 간 자리로 유도한 팔이다. 이것까지 넘어야 "
+          "'제약을 주면 아무 자리나 좋아진다'와 구별된다.")
+
     # 타깃별로 팔들을 가로로 붙여 한 장으로 (Pillow 있을 때만)
     if not a.dry_run:
         try:
@@ -157,8 +189,10 @@ def main():
         except Exception:
             print("[정보] Pillow 없음 → 칸별 PNG 만 생성.")
             return
-        for t in sorted({x["target"] for x in picked}):
-            fs = [x["png"] for x in picked if x["target"] == t and os.path.exists(x["png"])]
+        for t, crit in sorted({(x["target"], x["crit"]) for x in picked}):
+            sfx = "dq" if crit == "dockq" else "rc"
+            fs = [x["png"] for x in picked if x["target"] == t and x["crit"] == crit
+                  and os.path.exists(x["png"])]
             if len(fs) < 2:
                 continue
             ims = [Image.open(f).convert("RGB") for f in fs]
@@ -168,7 +202,7 @@ def main():
             x = 0
             for i in sh:
                 canvas.paste(i, (x, 0)); x += i.width
-            out = os.path.join(a.outpng, f"demo_{t}_panels.png")
+            out = os.path.join(a.outpng, f"demo_{t}_{sfx}_panels.png")
             canvas.save(out)
             print(f"→ {out}  ({len(fs)}칸)")
 
