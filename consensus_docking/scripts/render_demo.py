@@ -148,8 +148,11 @@ def main():
                         cl.append("--surface")
                     r = subprocess.run(cl, capture_output=True, text=True)
                     if not os.path.exists(png):
-                        print(r.stdout[-600:]); print(r.stderr[-600:])
-                        sys.exit(f"!! 렌더링 실패 {t}/{arm}. pymol 확인: {a.pymol} -cq -d 'print(1)'")
+                        # 한 칸이 실패해도 나머지는 계속 그린다(예: 사슬 매핑이 다른 복합체)
+                        msg = (r.stdout + r.stderr).strip().splitlines()
+                        why = next((l for l in reversed(msg) if "에러" in l or "Error" in l), "원인 미상")
+                        print(f"  !! 렌더링 건너뜀 {t}/{arm}/{crit}: {why[:120]}")
+                        picked.pop()
 
     if not picked:
         sys.exit("!! 고른 자세가 없다. --outdir / --msad-data 경로를 볼 것.")
