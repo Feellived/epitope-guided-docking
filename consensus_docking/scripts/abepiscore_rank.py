@@ -184,17 +184,18 @@ def cmd_eval(a):
 
     joined = []
     miss = 0
-    for r in csv.DictReader(open(a.truth)):
-        run = r.get("seed") or r.get("arm") or r.get("run") or "?"
-        key = (r["target"], run, r.get("pose", "?"))
-        if key not in sc:
-            miss += 1; continue
-        joined.append(dict(target=r["target"], run=run, score=sc[key],
-                           dockq=num(r, "dockq"), recall=num(r, "recall"),
-                           iptm=num(r, "iptm")))
+    for tf in a.truth:
+        for r in csv.DictReader(open(tf)):
+            run = r.get("seed") or r.get("arm") or r.get("run") or "?"
+            key = (r["target"], run, r.get("pose", "?"))
+            if key not in sc:
+                miss += 1; continue
+            joined.append(dict(target=r["target"], run=run, score=sc[key],
+                               dockq=num(r, "dockq"), recall=num(r, "recall"),
+                               iptm=num(r, "iptm")))
     if not joined:
         sys.exit("!! 정답 CSV 와 붙는 행이 없다. run 키(seed/arm)와 pose 파일명이 맞는지 볼 것.")
-    print(f"■ 붙은 자세 {len(joined)}개 (정답 CSV 에서 못 붙은 행 {miss}개)\n")
+    print(f"■ 정답 CSV {len(a.truth)}개 · 붙은 자세 {len(joined)}개 (못 붙은 행 {miss}개)\n")
 
     by_t = defaultdict(list)
     for r in joined:
@@ -239,6 +240,7 @@ def cmd_eval(a):
     print(f"{'타깃':<12}{'지표':>8}{'조성수':>7}{'천장':>8}{'AbEpi':>8}{'무작위':>8}"
           f"{'AbEpi 순위%':>12}   성공기준 도달")
     print("-" * 96)
+    across = defaultdict(list)
     for t, ps in sorted(by_t.items()):
         for key, lab, thr in (("dockq", "DockQ", 0.49), ("recall", "자리겹침", 0.40)):
             runs = defaultdict(list)
@@ -253,13 +255,30 @@ def cmd_eval(a):
             vals = sorted((v[1] for v in agg.values()), reverse=True)
             picked = agg[max(agg, key=lambda k: agg[k][0])][1]
             ceil, rand = vals[0], st.mean(vals)
-            # 고른 실행이 전체에서 몇 등인가 (0% = 최고, 100% = 최악)
+            # 고른 실행이 전체에서 몇 등인가 (100% = 최고, 0% = 최악)
             worse = sum(1 for v in vals if v < picked)
-            pct = 100.0 * (1 - worse / max(len(vals) - 1, 1))
+            pct = 100.0 * worse / max(len(vals) - 1, 1)
             hit = sum(1 for v in vals if v >= thr)
             ok = "○ 도달" if picked >= thr else "× 미달"
             print(f"{t:<12}{lab:>8}{len(agg):>7}{ceil:>8.3f}{picked:>8.3f}{rand:>8.3f}"
                   f"{pct:>11.0f}%   {ok} (기준 충족 조성 {hit}/{len(vals)})")
+            across[key].append((ceil, picked, rand, pct, ceil >= thr, picked >= thr))
+
+    # 전체 집계 — 이 검증의 결론이 나오는 자리
+    for key, lab, thr in (("dockq", "DockQ", 0.49), ("recall", "자리겹침", 0.40)):
+        v = across[key]
+        if not v:
+            continue
+        n = len(v)
+        reach = sum(1 for x in v if x[4])          # 천장이 기준을 넘는 타깃 = 건질 것이 있는 곳
+        got = sum(1 for x in v if x[5])            # 그중 실제로 집어낸 곳
+        print(f"\n■ 전체 {lab} (타깃 {n}개, 기준 {thr})")
+        print(f"  평균   천장 {st.mean([x[0] for x in v]):.3f}  ·  "
+              f"AbEpi 선택 {st.mean([x[1] for x in v]):.3f}  ·  "
+              f"무작위 {st.mean([x[2] for x in v]):.3f}")
+        print(f"  고른 조성의 순위 백분위 중앙값 {st.median([x[3] for x in v]):.0f}% "
+              f"(무작위 선택의 기대값 = 50%)")
+        print(f"  ★ 정답이 존재하는 타깃 {reach}개 중 실제로 집어낸 것 {got}개")
 
     print("\n■ 요약 (타깃 내 상관의 중앙값)")
     for k, lab in (("dq", "AbEpiScore ↔ DockQ"), ("rc", "AbEpiScore ↔ 자리 겹침"),
@@ -289,7 +308,8 @@ def main():
     s.set_defaults(fn=cmd_score)
     e = sub.add_parser("eval")
     e.add_argument("--scores", required=True)
-    e.add_argument("--truth", required=True)
+    e.add_argument("--truth", nargs="+", required=True,
+                   help="정답 CSV 여럿을 한 번에 받아 표 하나로 낸다")
     e.set_defaults(fn=cmd_eval)
     a = ap.parse_args()
     a.fn(a)
