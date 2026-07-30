@@ -43,6 +43,8 @@ def main():
     ap.add_argument("--hit-only", action="store_true", help="맞힌 부분만 칠한다")
     ap.add_argument("--main-patch", action="store_true", help="흩어진 잔기를 버리고 큰 덩어리만")
     ap.add_argument("--repr", default="surface", choices=["surface", "cartoon"])
+    ap.add_argument("--show-ab", action="store_true", help="예측 항체를 반투명으로 얹는다")
+    ap.add_argument("--show-native-ab", action="store_true", help="정답 항체도 흐릿하게")
     ap.add_argument("--suffix", default="", help="출력 이름에 붙일 꼬리표 (두 판을 함께 보관할 때)")
     ap.add_argument("--csv", default="results/site_figures.csv")
     a = ap.parse_args()
@@ -106,7 +108,8 @@ def main():
               "--out-prefix", os.path.join(a.outpng, f"site_{t}{a.suffix}"),
               "--cutoff", str(a.cutoff)]
         for flag, on in (("--no-fp", a.no_fp), ("--hit-only", a.hit_only),
-                         ("--main-patch", a.main_patch)):
+                         ("--main-patch", a.main_patch), ("--show-ab", a.show_ab),
+                         ("--show-native-ab", a.show_native_ab)):
             if on:
                 cl.append(flag)
         cl += ["--repr", a.repr]
