@@ -180,16 +180,19 @@ def main():
         sys.exit(f"[에러] 예측 파일 없음: {pred} (--pred 또는 --model+--from-csv 필요)")
 
     cj = json.load(open(chains_path))
-    ag = str(cj["antigen"])
+    # 항원·항체 모두 문자열 하나 또는 사슬 목록으로 올 수 있다(레포마다 chains.json 형식이 다름)
+    agl = cj["antigen"]
+    agl = [agl] if isinstance(agl, str) else [str(x) for x in agl]
+    ag = agl[0]
     ab = cj["antibody"]
     ab = [ab] if isinstance(ab, str) else [str(x) for x in ab]
 
     # --- 로드 + 항원 기준 정렬 ---
     cmd.load(native, "nat")
     cmd.load(pred, "prd")
-    nat_ag_sel = f"nat and chain {ag}"
+    nat_ag_sel = "nat and (" + " or ".join(f"chain {c}" for c in agl) + ")"
     if cmd.count_atoms(nat_ag_sel) == 0:
-        sys.exit(f"[에러] native에 항원 사슬 {ag} 없음. chains.json 확인.")
+        sys.exit(f"[에러] native에 항원 사슬 {agl} 없음. 있는 사슬: {chains_of('nat')}")
     prd_ag = detect_antigen(nat_ag_sel)
     if not prd_ag:
         sys.exit("[에러] 예측 항원 사슬 식별(cealign) 실패.")
