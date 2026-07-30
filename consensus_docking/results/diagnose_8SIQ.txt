@@ -1,0 +1,6 @@
+target fmt  model          epi_recall  abRMSD@best  min_abRMSD  poses
+8SIQ   Fab  Boltz-2              0.00         8.45        4.43      5
+8SIQ   Fab  Chai-1               0.46         8.61        8.27      5
+8SIQ   Fab  Protenix-base        0.92         1.91        1.86      5
+8SIQ   Fab  AF2-Multimer         0.04         3.94        1.27      5
+8SIQ   Fab  tFold-Ag             0.12         6.52        6.21      5

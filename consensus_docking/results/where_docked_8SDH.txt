@@ -1,0 +1,11 @@
+
+===== 8SDH Fab =====  native 항원 334-528
+  TRUE epitope (n=0): []   [RBM:0 core:0 class3:0 other:0]
+  Boltz-2        pred_epitope(>= 3/5, n=11): [416, 417, 446, 447, 449, 455, 456, 486, 487, 489, 494]
+                 [RBM:9 core:0 class3:0 other:2]  true∩recall=0.00
+  Chai-1         pred_epitope(>= 3/5, n=24): [416, 417, 446, 447, 455, 475, 476, 484, 485, 486, 487, 488, 489, 490, 491, 492, 493, 494, 495, 496, 497, 498, 501, 505]
+                 [RBM:22 core:0 class3:0 other:2]  true∩recall=0.00
+  Protenix-base  pred_epitope(>= 3/5, n=17): [381, 382, 383, 386, 387, 389, 390, 391, 426, 427, 428, 430, 462, 463, 517, 518, 519]
+                 [RBM:2 core:4 class3:0 other:11]  true∩recall=0.00
+  AF2-Multimer   pred_epitope(>= 3/5, n=26): [446, 447, 448, 449, 450, 452, 455, 475, 480, 481, 483, 484, 485, 486, 487, 488, 489, 490, 492, 493, 494, 495, 496, 498, 500, 501]
+                 [RBM:26 core:0 class3:0 other:0]  true∩recall=0.00

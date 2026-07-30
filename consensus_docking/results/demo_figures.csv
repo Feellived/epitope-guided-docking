@@ -1,0 +1,3 @@
+target,arm,crit,model,dockq,recall,n_pose,pose,png
+8k3k_D,blind,recall,protenix,,0.1364,100,/mnt/data/admuser/msadepth/compreps/seedrep_cand/protenix/8k3k_D/d57/seedfull_r17/results/8k3k_d/seed_0/predictions/8k3k_d_sample_4.cif,fig/demo_8k3k_D_blind_rc.png
+8k3k_D,ours,recall,boltz,,0.7600,10,runs_sites_guided/8k3k_d/ours/out_boltz/results/boltz_results_boltz_8k3k_d_patch0/predictions/boltz_8k3k_d_patch0/boltz_8k3k_d_patch0_model_3.cif,fig/demo_8k3k_D_ours_rc.png

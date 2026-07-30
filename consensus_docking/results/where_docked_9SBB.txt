@@ -1,0 +1,5 @@
+
+===== 9SBB Fab =====  native 항원 334-527
+  TRUE epitope (n=11): [359, 462, 463, 464, 465, 466, 516, 517, 518, 519, 520]   [RBM:5 core:0 class3:0 other:6]
+  Boltz-2        pred_epitope(>= 3/5, n=4): [446, 485, 494, 502]
+                 [RBM:4 core:0 class3:0 other:0]  true∩recall=0.00

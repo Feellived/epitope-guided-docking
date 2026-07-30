@@ -1,0 +1,5 @@
+
+===== 8XSI Fab =====  native 항원 333-527
+  TRUE epitope (n=11): [355, 357, 462, 463, 464, 465, 466, 467, 518, 519, 520]   [RBM:6 core:0 class3:0 other:5]
+  Boltz-2        pred_epitope(>= 3/5, n=15): [447, 455, 456, 457, 458, 459, 460, 475, 485, 486, 494, 496, 498, 500, 501]
+                 [RBM:15 core:0 class3:0 other:0]  true∩recall=0.00

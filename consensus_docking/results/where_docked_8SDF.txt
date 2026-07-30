@@ -1,0 +1,5 @@
+
+===== 8SDF Fab =====  native 항원 333-527
+  TRUE epitope (n=15): [355, 356, 357, 463, 464, 465, 467, 468, 469, 470, 471, 516, 518, 519, 520]   [RBM:8 core:0 class3:1 other:6]
+  Boltz-2        pred_epitope(>= 3/5, n=7): [456, 475, 484, 485, 486, 487, 493]
+                 [RBM:7 core:0 class3:0 other:0]  true∩recall=0.00

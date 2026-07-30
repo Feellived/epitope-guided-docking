@@ -1,0 +1,22 @@
+[07-14 17:27:18] ================ MODEL: colabfold ================
+[07-14 17:27:22]   플래그 감지: --calc-extra-ptm  (pair-ipTM: pairwise_iptm 출력)
+[07-14 17:27:22] run 9k6j ...
+[07-14 17:32:32] run 9k6j_fv ...
+[07-14 17:36:09] ================ MODEL: protenix ================
+[07-14 17:36:19] !! protenix에 PAE 저장 플래그 없음 → SKIP (protenix pred --help 확인 필요; base 미지원일 수 있음)
+[07-14 17:36:19] ================ MODEL: chai ================
+[07-14 17:36:28] !! chai-lab fold에 PAE 저장 옵션 없음 → SKIP. Chai PAE는 CLI로 안 나옴(issue#348):
+[07-14 17:36:28]    → run_inference API의 StructureCandidates.pae를 파이썬으로 덤프해야 함(버전 확인 후 chai_pae.py 별도 제공).
+[07-14 17:36:28] ======== DONE ========  companion 출력: results_colabfold_xtra / out_protenix_pae / out_chai_pae
+[07-14 17:36:28] 각 모델 SKIP 메시지 있으면 그 플래그는 이 버전에 없음 = 별도 처리 필요(알려주세요).
+[07-14 17:46:29] ================ MODEL: colabfold ================
+[07-14 17:46:30]   플래그 감지: --calc-extra-ptm  (pair-ipTM: pairwise_iptm 출력)
+[07-14 17:46:30] skip 9k6j (있음)
+[07-14 17:46:30] skip 9k6j_fv (있음)
+[07-14 17:46:30] ================ MODEL: protenix ================
+[07-14 17:46:33] !! protenix에 PAE 저장 플래그 없음 → SKIP (protenix pred --help 확인 필요; base 미지원일 수 있음)
+[07-14 17:46:33] ================ MODEL: chai ================
+[07-14 17:46:36] !! chai-lab fold에 PAE 저장 옵션 없음 → SKIP. Chai PAE는 CLI로 안 나옴(issue#348):
+[07-14 17:46:36]    → run_inference API의 StructureCandidates.pae를 파이썬으로 덤프해야 함(버전 확인 후 chai_pae.py 별도 제공).
+[07-14 17:46:36] ======== DONE ========  companion 출력: results_colabfold_xtra / out_protenix_pae / out_chai_pae
+[07-14 17:46:36] 각 모델 SKIP 메시지 있으면 그 플래그는 이 버전에 없음 = 별도 처리 필요(알려주세요).
