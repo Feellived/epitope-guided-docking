@@ -38,6 +38,9 @@ def main():
     ap.add_argument("--models", default="boltz protenix")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--pymol", default="pymol")
+    ap.add_argument("--no-fp", action="store_true",
+                    help="잘못 짚은 부분을 칠하지 않는다(그림이 깨끗해진다)")
+    ap.add_argument("--suffix", default="", help="출력 이름에 붙일 꼬리표 (두 판을 함께 보관할 때)")
     ap.add_argument("--csv", default="results/site_figures.csv")
     a = ap.parse_args()
 
@@ -97,7 +100,10 @@ def main():
         if not preds:
             continue
         cl = [a.pymol, "-cq", script, "--", "--native", native, "--chains", cjp,
-              "--out-prefix", os.path.join(a.outpng, f"site_{t}"), "--cutoff", str(a.cutoff)]
+              "--out-prefix", os.path.join(a.outpng, f"site_{t}{a.suffix}"),
+              "--cutoff", str(a.cutoff)]
+        if a.no_fp:
+            cl.append("--no-fp")
         for lab, p in preds:
             cl += ["--pred", f"{lab}={p}"]
         r = subprocess.run(cl, capture_output=True, text=True)
