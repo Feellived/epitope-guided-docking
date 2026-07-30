@@ -127,14 +127,17 @@ def main():
                     if not cand:
                         print(f"{t} / {arm}: {crit} 값이 없다 — 건너뜀"); continue
                     dq, rc, path, mlab = max(cand, key=lambda x: x[i])
+                    # 한쪽 지표만 계산된 자세가 있다(예: DockQ 실패, 자리 겹침은 성립)
+                    f3 = lambda v: "n/a" if v is None else f"{v:.3f}"
+                    f4 = lambda v: "" if v is None else f"{v:.4f}"
                     sfx = "dq" if crit == "dockq" else "rc"
                     png = os.path.join(a.outpng, f"demo_{t}_{arm}_{sfx}.png")
                     cap = (f"{t} | {ARM_EN.get(arm, arm)} | {mlab} | "
-                           f"DockQ={dq:.3f} recall={rc:.3f} | best-{sfx} of {len(scored)} (ceiling)")
+                           f"DockQ={f3(dq)} recall={f3(rc)} | best-{sfx} of {len(scored)} (ceiling)")
                     print(f"{t:10}{arm:14}{crit:7}{mlab:9}"
-                          f"DockQ={dq:.3f} recall={rc:.3f}  n={len(scored):>3}  {path}")
+                          f"DockQ={f3(dq):>6} recall={f3(rc):>6}  n={len(scored):>3}  {path}")
                     picked.append(dict(target=t, arm=arm, crit=crit, model=mlab,
-                                       dockq=f"{dq:.4f}", recall=f"{rc:.4f}",
+                                       dockq=f4(dq), recall=f4(rc),
                                        n_pose=len(scored), pose=path, png=png))
                     if a.dry_run:
                         continue
@@ -167,7 +170,10 @@ def main():
             cells, v = "", {}
             for arm in arms:
                 m = [x for x in rows if x["target"] == t and x["arm"] == arm]
-                v[arm] = float(m[0][key]) if m else None
+                try:
+                    v[arm] = float(m[0][key]) if m and m[0][key] else None
+                except ValueError:
+                    v[arm] = None
                 cells += f"{(f'{v[arm]:.3f}' if v[arm] is not None else '-'):>21}"
             o, b = v.get("ours"), v.get("blind")
             f_ = v.get("fullmsa")
