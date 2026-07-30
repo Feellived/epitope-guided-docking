@@ -27,7 +27,8 @@
 import argparse, csv, glob, json, os, subprocess, sys, tempfile
 
 # 캡션은 DejaVu 폰트로 얹히는데 한글 글리프가 없어 네모로 나온다 → 영문 표기
-ARM_EN = {"blind": "no hint", "noconstraint": "no constraint",
+ARM_EN = {"blind": "original-MSA runs (other model, larger pose budget)",
+          "noconstraint": "no constraint",
           "fullmsa": "original-MSA site", "sizematch": "size-matched decoy",
           "ours": "OURS"}
 
@@ -58,7 +59,8 @@ def arm_poses(a, target, arm, sj, models):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--targets", required=True)
-    ap.add_argument("--arms", default="blind fullmsa ours")
+    ap.add_argument("--arms", default="noconstraint fullmsa sizematch ours",
+                    help="blind 는 다른 모델·다른 자세 예산이라 기본 비교에서 제외한다")
     ap.add_argument("--outdir", default="runs_sites_guided")
     ap.add_argument("--outpng", default="fig")
     ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
