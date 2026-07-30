@@ -40,6 +40,9 @@ def main():
     ap.add_argument("--pymol", default="pymol")
     ap.add_argument("--no-fp", action="store_true",
                     help="잘못 짚은 부분을 칠하지 않는다(그림이 깨끗해진다)")
+    ap.add_argument("--hit-only", action="store_true", help="맞힌 부분만 칠한다")
+    ap.add_argument("--main-patch", action="store_true", help="흩어진 잔기를 버리고 큰 덩어리만")
+    ap.add_argument("--repr", default="surface", choices=["surface", "cartoon"])
     ap.add_argument("--suffix", default="", help="출력 이름에 붙일 꼬리표 (두 판을 함께 보관할 때)")
     ap.add_argument("--csv", default="results/site_figures.csv")
     a = ap.parse_args()
@@ -102,8 +105,11 @@ def main():
         cl = [a.pymol, "-cq", script, "--", "--native", native, "--chains", cjp,
               "--out-prefix", os.path.join(a.outpng, f"site_{t}{a.suffix}"),
               "--cutoff", str(a.cutoff)]
-        if a.no_fp:
-            cl.append("--no-fp")
+        for flag, on in (("--no-fp", a.no_fp), ("--hit-only", a.hit_only),
+                         ("--main-patch", a.main_patch)):
+            if on:
+                cl.append(flag)
+        cl += ["--repr", a.repr]
         for lab, p in preds:
             cl += ["--pred", f"{lab}={p}"]
         r = subprocess.run(cl, capture_output=True, text=True)
