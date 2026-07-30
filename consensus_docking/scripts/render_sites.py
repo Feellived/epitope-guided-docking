@@ -10,7 +10,8 @@ render_demo.py 가 '항체를 얹은 그림'이라면 이쪽은 '항원 표면�
 """
 import argparse, csv, glob, json, os, subprocess, sys, tempfile
 
-ARM_EN = {"blind": "no constraint", "noconstraint": "no constraint",
+ARM_EN = {"blind": "original-MSA runs (other model, larger pose budget)",
+          "noconstraint": "no constraint",
           "fullmsa": "original-MSA site", "sizematch": "area-matched decoy",
           "ours": "composition site"}
 
@@ -28,7 +29,8 @@ def poses_of(d):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--targets", required=True)
-    ap.add_argument("--arms", default="blind ours")
+    ap.add_argument("--arms", default="noconstraint fullmsa sizematch ours",
+                    help="blind 는 다른 모델·다른 자세 예산이라 기본 비교에서 제외한다")
     ap.add_argument("--outdir", default="runs_sites_guided")
     ap.add_argument("--outpng", default="fig")
     ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
