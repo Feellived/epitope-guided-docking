@@ -180,12 +180,17 @@ def main():
         sys.exit(f"[에러] 예측 파일 없음: {pred} (--pred 또는 --model+--from-csv 필요)")
 
     cj = json.load(open(chains_path))
-    # 항원·항체 모두 문자열 하나 또는 사슬 목록으로 올 수 있다(레포마다 chains.json 형식이 다름)
-    agl = cj["antigen"]
-    agl = [agl] if isinstance(agl, str) else [str(x) for x in agl]
+    # chains.json 형식이 레포마다 다르다:
+    #   consensus_docking : {"antigen": "A", "antibody": ["H","L"]}          = native의 실제 사슬
+    #   msa-depth         : {"antigen": ["A"], ..., "src_chains": {...}}     = A/B는 논리 이름이고
+    #                       실제 native 사슬은 src_chains 에 있다(예: 8k3k_D → D·E)
+    def _lst(v):
+        return [v] if isinstance(v, str) else [str(x) for x in v]
+
+    src = cj.get("src_chains") or {}
+    agl = [str(x) for x in src.get("antigen", [])] or _lst(cj["antigen"])
+    ab = [str(x) for x in (list(src.get("H", [])) + list(src.get("L", [])))] or _lst(cj["antibody"])
     ag = agl[0]
-    ab = cj["antibody"]
-    ab = [ab] if isinstance(ab, str) else [str(x) for x in ab]
 
     # --- 로드 + 항원 기준 정렬 ---
     cmd.load(native, "nat")
