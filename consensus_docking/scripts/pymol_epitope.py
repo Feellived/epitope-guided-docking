@@ -68,6 +68,49 @@ def detect_antigen(obj, nat_ag_sel):
     return best[2] if best else None
 
 
+def ca_xyz(sel):
+    out = []
+    cmd.iterate_state(1, sel + " and name CA",
+                      "out.append(((chain, resi), (x, y, z)))", space={"out": out})
+    return out
+
+
+def main_cluster(sel, cut=8.0):
+    """가장 큰 연결 덩어리만 남긴다 — 흩어진 잔기 때문에 얼룩처럼 보이는 것을 막는다."""
+    pts = ca_xyz(sel)
+    if len(pts) < 3:
+        return {k for k, _ in pts}
+    n = len(pts)
+    adj = [[] for _ in range(n)]
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = sum((pts[i][1][k] - pts[j][1][k]) ** 2 for k in range(3)) ** .5
+            if d <= cut:
+                adj[i].append(j); adj[j].append(i)
+    seen, best = set(), []
+    for i in range(n):
+        if i in seen:
+            continue
+        comp, stack = [], [i]; seen.add(i)
+        while stack:
+            u = stack.pop(); comp.append(u)
+            for v in adj[u]:
+                if v not in seen:
+                    seen.add(v); stack.append(v)
+        if len(comp) > len(best):
+            best = comp
+    return {pts[i][0] for i in best}
+
+
+def sel_of(res):
+    if not res:
+        return "none"
+    by = {}
+    for c, r in res:
+        by.setdefault(c, []).append(r)
+    return "(" + " or ".join(f"(chain {c} and resi {'+'.join(v)})" for c, v in by.items()) + ")"
+
+
 def resset(sel):
     out = set()
     cmd.iterate(sel + " and name CA", "out.add((chain, resi))", space={"out": out})
@@ -84,6 +127,11 @@ def main():
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--no-fp", action="store_true",
                     help="잘못 짚은 부분(파랑)을 칠하지 않는다 — recall 만 깨끗하게 보인다")
+    ap.add_argument("--hit-only", action="store_true",
+                    help="맞힌 부분(초록)만 칠한다 — 가장 깨끗하다")
+    ap.add_argument("--main-patch", action="store_true",
+                    help="예측 자리 중 가장 큰 연결 덩어리만 쓴다(흩어진 잔기 제거)")
+    ap.add_argument("--repr", default="surface", choices=["surface", "cartoon"])
     ap.add_argument("--width", type=int, default=1300)
     ap.add_argument("--height", type=int, default=1100)
     a = ap.parse_args(argv_after_dashdash())
@@ -109,7 +157,7 @@ def main():
     cmd.set("antialias", 2)
     cmd.set("surface_quality", 1)
     cmd.set("ray_opaque_background", 1)
-    cmd.show("surface", ag_sel)
+    cmd.show(a.repr, ag_sel)
     cmd.color(GREY, ag_sel)
 
     # 카메라는 정답 자리가 정면에 오도록 한 번만 정하고 모든 칸에 같은 값을 쓴다
@@ -135,14 +183,22 @@ def main():
         # 예측 결합자리 = native 항원 표면 위에서 예측 항체와 가까운 잔기
         cmd.select("pred_epi", f"byres (({ag_sel}) within {a.cutoff} of ({pab_sel}))")
         pred_res = resset("pred_epi")
+        if a.main_patch and pred_res:
+            keep = main_cluster("pred_epi")
+            dropped = len(pred_res) - len(keep)
+            cmd.select("pred_epi", f"nat and {sel_of(keep)}")
+            pred_res = keep
+            if dropped:
+                print(f"     (흩어진 {dropped}잔기 제외)")
         hit = true_res & pred_res
         rec = len(hit) / len(true_res)
         prec = len(hit) / len(pred_res) if pred_res else 0.0
 
         cmd.color(GREY, ag_sel)
-        cmd.color(MISS, "true_epi")
-        if not a.no_fp:
-            cmd.color(FALSE, "pred_epi and not true_epi")
+        if not a.hit_only:
+            cmd.color(MISS, "true_epi")
+            if not a.no_fp:
+                cmd.color(FALSE, "pred_epi and not true_epi")
         cmd.color(HIT, "pred_epi and true_epi")
         cmd.set_view(view)
         out = f"{a.out_prefix}_{tag}.png"
