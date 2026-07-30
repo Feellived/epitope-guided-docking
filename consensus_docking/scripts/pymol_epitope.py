@@ -9,7 +9,7 @@
 색 (파스텔 · 그림 안에 글자를 넣지 않으므로 캡션에 옮겨 적을 것):
   회색   = 항원 표면
   분홍   = 정답 결합자리인데 예측이 놓친 부분      (false negative)
-  파랑   = 예측이 짚었으나 정답이 아닌 부분        (false positive)
+  파랑   = 예측이 짚었으나 정답이 아닌 부분        (false positive; --no-fp 로 끌 수 있다)
   초록   = 둘이 겹친 부분 = 맞힌 부분              (true positive)
   → 초록이 많고 분홍이 적을수록 좋다.
 
@@ -82,6 +82,8 @@ def main():
                     help='"라벨=경로" 형식. 여러 번 줄 수 있고 모두 같은 각도로 그린다')
     ap.add_argument("--out-prefix", required=True)
     ap.add_argument("--cutoff", type=float, default=5.0)
+    ap.add_argument("--no-fp", action="store_true",
+                    help="잘못 짚은 부분(파랑)을 칠하지 않는다 — recall 만 깨끗하게 보인다")
     ap.add_argument("--width", type=int, default=1300)
     ap.add_argument("--height", type=int, default=1100)
     a = ap.parse_args(argv_after_dashdash())
@@ -139,7 +141,8 @@ def main():
 
         cmd.color(GREY, ag_sel)
         cmd.color(MISS, "true_epi")
-        cmd.color(FALSE, "pred_epi and not true_epi")
+        if not a.no_fp:
+            cmd.color(FALSE, "pred_epi and not true_epi")
         cmd.color(HIT, "pred_epi and true_epi")
         cmd.set_view(view)
         out = f"{a.out_prefix}_{tag}.png"
