@@ -157,12 +157,16 @@ def main():
     cmd.set("antialias", 2)
     cmd.set("surface_quality", 1)
     cmd.set("ray_opaque_background", 1)
+    cmd.set("ray_interior_color", "grey70")   # 잘린 면이 검게 나오는 것을 막는다
+    cmd.set("two_sided_lighting", 1)
+    cmd.set("surface_cavity_mode", 0)
     cmd.show(a.repr, ag_sel)
     cmd.color(GREY, ag_sel)
 
     # 카메라는 정답 자리가 정면에 오도록 한 번만 정하고 모든 칸에 같은 값을 쓴다
-    cmd.orient("true_epi")
-    cmd.zoom(ag_sel, 3.0)
+    cmd.orient("true_epi")          # 결합자리가 정면에 오도록 방향만 잡고
+    cmd.zoom(ag_sel, 12.0)          # 항원 전체가 들어오게 물러난다
+    cmd.clip("slab", 500)           # 표면이 절단되지 않게 앞뒤 여유를 준다
     view = cmd.get_view()
 
     print(f"정답 결합자리 {len(true_res)}잔기 · 조건 {len(a.pred)}개")
@@ -171,10 +175,12 @@ def main():
         tag = "".join(ch if ch.isalnum() else "_" for ch in label)
         cmd.delete("prd")
         cmd.load(path, "prd")
+        cmd.hide("everything", "prd")   # 항체는 자리 계산에만 쓰고 그리지 않는다
         pag = detect_antigen("prd", ag_sel)
         if not pag:
             print(f"  !! {label}: 예측 항원 사슬 식별 실패 — 건너뜀"); continue
         cmd.cealign(ag_sel, f"prd and chain {pag}")
+        cmd.hide("everything", "prd")   # cealign 이 다시 켜므로 한 번 더 끈다
         pab = [c for c in chains_of("prd") if c != pag]
         if not pab:
             print(f"  !! {label}: 예측 항체 사슬 없음 — 건너뜀"); continue
