@@ -231,6 +231,36 @@ def cmd_eval(a):
         if n:
             agg["orc"].append(orc/n); agg["ab"].append(ab/n); agg["it"].append(it/n)
 
+    # ── 조성(=실행) 하나를 고르는 층 ─────────────────────────────
+    # 한 조성 안의 자세 5개는 거의 같으므로(조성 내 산포 ≪ 조성 간 산포) 위의 "실행 내
+    # 자세 선택"은 고를 것이 없는 층이다. 이 연구가 실제로 필요한 것은 조성 여러 개 중
+    # 어느 실행의 출력을 믿을지 고르는 일이다. 그 층을 여기서 잰다.
+    print("\n■ 조성(=실행) 하나를 고를 때 — 이 연구가 실제로 필요한 층")
+    print(f"{'타깃':<12}{'지표':>8}{'조성수':>7}{'천장':>8}{'AbEpi':>8}{'무작위':>8}"
+          f"{'AbEpi 순위%':>12}   성공기준 도달")
+    print("-" * 96)
+    for t, ps in sorted(by_t.items()):
+        for key, lab, thr in (("dockq", "DockQ", 0.49), ("recall", "자리겹침", 0.40)):
+            runs = defaultdict(list)
+            for r in ps:
+                if r[key] is not None:
+                    runs[r["run"]].append(r)
+            if len(runs) < 3:
+                continue
+            # 실행 점수 = 그 실행 자세들의 최대 (정답을 보지 않는 값)
+            agg = {k: (max(x["score"] for x in v), max(x[key] for x in v))
+                   for k, v in runs.items()}
+            vals = sorted((v[1] for v in agg.values()), reverse=True)
+            picked = agg[max(agg, key=lambda k: agg[k][0])][1]
+            ceil, rand = vals[0], st.mean(vals)
+            # 고른 실행이 전체에서 몇 등인가 (0% = 최고, 100% = 최악)
+            worse = sum(1 for v in vals if v < picked)
+            pct = 100.0 * (1 - worse / max(len(vals) - 1, 1))
+            hit = sum(1 for v in vals if v >= thr)
+            ok = "○ 도달" if picked >= thr else "× 미달"
+            print(f"{t:<12}{lab:>8}{len(agg):>7}{ceil:>8.3f}{picked:>8.3f}{rand:>8.3f}"
+                  f"{pct:>11.0f}%   {ok} (기준 충족 조성 {hit}/{len(vals)})")
+
     print("\n■ 요약 (타깃 내 상관의 중앙값)")
     for k, lab in (("dq", "AbEpiScore ↔ DockQ"), ("rc", "AbEpiScore ↔ 자리 겹침"),
                    ("ip", "ipTM ↔ DockQ")):
