@@ -96,10 +96,22 @@ def cmd_score(a):
         sys.exit(f"!! 구조 파일이 없다: {a.glob}")
     if os.path.exists(a.out) and not a.force:
         sys.exit(f"!! {a.out} 이 이미 있다. 덮어쓰려면 --force (원자료를 잃지 않도록 기본 거부)")
+    # 실행 방식 결정 — venv 가 있으면 그걸 쓰고, 없으면 현재 파이썬 + PYTHONPATH 로 돈다.
     act = os.path.join(a.repo, ".venv", "bin", "activate")
-    if not os.path.exists(act):
-        sys.exit(f"!! AbEpiTope venv 를 못 찾았다: {act}\n"
-                 f"   설치: bash scripts/setup_epitope_tools.sh --only abepitope --apply")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = a.repo + os.pathsep + env.get("PYTHONPATH", "")
+    use_venv = os.path.exists(act) and not a.no_venv
+    if not use_venv:
+        chk = subprocess.run([a.python, "-c", "import abepitope; print('OK')"],
+                             capture_output=True, text=True, env=env)
+        if "OK" not in chk.stdout:
+            print(chk.stderr[-800:])
+            sys.exit(f"!! abepitope 를 import 하지 못했다.\n"
+                     f"   현재 파이썬: {a.python}\n"
+                     f"   찾은 경로  : {a.repo}\n"
+                     f"   해결 ① 패키지가 있는 conda env 에서 실행 (예: conda activate boltz)\n"
+                     f"   해결 ② venv 설치: bash scripts/setup_epitope_tools.sh --only abepitope --apply")
+        print(f"■ venv 없이 현재 파이썬으로 실행한다 ({a.python})")
     print(f"■ 자세 {len(files)}개를 AbEpiScore-1.0 으로 채점 (묶음 {a.batch}개씩)")
 
     rows = []
@@ -114,9 +126,13 @@ def cmd_score(a):
             shutil.copy(p, os.path.join(inp, nm))
         drv = os.path.join(work, "driver.py"); open(drv, "w").write(DRIVER)
         enc, tmp, out = (os.path.join(work, x) for x in ("enc", "tmp", "out"))
-        r = subprocess.run(["bash", "-c",
-                            f'source "{act}" && python "{drv}" "{inp}" "{enc}" "{tmp}" "{out}"'],
-                           capture_output=True, text=True)
+        if use_venv:
+            r = subprocess.run(["bash", "-c",
+                                f'source "{act}" && python "{drv}" "{inp}" "{enc}" "{tmp}" "{out}"'],
+                               capture_output=True, text=True)
+        else:
+            r = subprocess.run([a.python, drv, inp, enc, tmp, out],
+                               capture_output=True, text=True, env=env)
         if "ABEPITOPE_OK" not in r.stdout:
             print(r.stdout[-1200:]); print(r.stderr[-1200:])
             sys.exit(f"!! AbEpiTope 실행 실패 (묶음 {b0}~). 반쪽 결과를 남기지 않고 멈춘다.\n"
@@ -237,6 +253,9 @@ def main():
     s.add_argument("--repo", default=os.path.expanduser("~/tools/AbEpiTope-1.0"))
     s.add_argument("--batch", type=int, default=100)
     s.add_argument("--force", action="store_true")
+    s.add_argument("--no-venv", action="store_true",
+                   help="venv 를 무시하고 현재 파이썬 + PYTHONPATH=repo 로 실행")
+    s.add_argument("--python", default=sys.executable)
     s.set_defaults(fn=cmd_score)
     e = sub.add_parser("eval")
     e.add_argument("--scores", required=True)
