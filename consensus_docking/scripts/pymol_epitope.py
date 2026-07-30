@@ -29,6 +29,7 @@ import sys
 from pymol import cmd
 
 GREY, MISS, FALSE, HIT = "grey80", "0xEDA8C4", "0x9EC5E8", "0xA6D8B4"
+AB_PRED, AB_NAT = "0xC3B4E5", "0xBFBFBF"   # 예측 항체 · 정답 항체
 
 
 def argv_after_dashdash():
@@ -132,6 +133,11 @@ def main():
     ap.add_argument("--main-patch", action="store_true",
                     help="예측 자리 중 가장 큰 연결 덩어리만 쓴다(흩어진 잔기 제거)")
     ap.add_argument("--repr", default="surface", choices=["surface", "cartoon"])
+    ap.add_argument("--show-ab", action="store_true",
+                    help="예측 항체를 반투명 리본으로 얹는다 — 어디에 붙었는지까지 보인다")
+    ap.add_argument("--show-native-ab", action="store_true",
+                    help="정답 항체도 흐릿하게 얹는다(비교용)")
+    ap.add_argument("--ab-transparency", type=float, default=0.35)
     ap.add_argument("--width", type=int, default=1300)
     ap.add_argument("--height", type=int, default=1100)
     a = ap.parse_args(argv_after_dashdash())
@@ -206,10 +212,20 @@ def main():
             if not a.no_fp:
                 cmd.color(FALSE, "pred_epi and not true_epi")
         cmd.color(HIT, "pred_epi and true_epi")
+        # 항체를 반투명 리본으로 얹으면 '어느 자리에 어떻게 붙었는지'까지 한 장에 담긴다
+        if a.show_ab:
+            cmd.show("cartoon", pab_sel)
+            cmd.color(AB_PRED, pab_sel)
+            cmd.set("cartoon_transparency", a.ab_transparency, "prd")
+        if a.show_native_ab:
+            cmd.show("cartoon", ab_sel)
+            cmd.color(AB_NAT, ab_sel)
+            cmd.set("cartoon_transparency", 0.65, "nat")
         cmd.set_view(view)
         out = f"{a.out_prefix}_{tag}.png"
         os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
         cmd.png(out, width=a.width, height=a.height, dpi=300, ray=1)
+        cmd.hide("cartoon", "prd")
         print(f"  {label:24} 예측 {len(pred_res):>3}잔기 · 맞힌 {len(hit):>3} · "
               f"recall {rec:.3f} · precision {prec:.3f} → {out}")
 
