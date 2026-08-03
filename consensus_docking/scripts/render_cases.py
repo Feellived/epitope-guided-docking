@@ -54,6 +54,8 @@ def main():
     ap.add_argument("--target", required=True)
     ap.add_argument("--arms", default="noconstraint ours")
     ap.add_argument("--pick", default="first", help="자세 번호. 기본은 첫 번째")
+    ap.add_argument("--ag", default="", help="항원 사슬(공백 구분). 비우면 chains.json")
+    ap.add_argument("--ab", default="", help="항체 사슬(공백 구분). 비우면 chains.json")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--out", required=True, help="접두사. <접두사>_<팔>.png 로 저장")
     ap.add_argument("--width", type=int, default=1200)
@@ -64,6 +66,8 @@ def main():
     cj = json.load(open(os.path.join(MSAD, "targets", tgt, "chains.json")))
     ag = cj["antigen"]; ag = [ag] if isinstance(ag, str) else [str(x) for x in ag]
     ab = cj["antibody"]; ab = [ab] if isinstance(ab, str) else [str(x) for x in ab]
+    if a.ag: ag = a.ag.split()
+    if a.ab: ab = a.ab.split()
     native = os.path.join(MSAD, "targets", tgt, "native.cif")
     if not os.path.exists(native):
         sys.exit(f"!! native 가 없다: {native}")
@@ -72,6 +76,11 @@ def main():
     cmd.bg_color("white")
     cmd.set("surface_quality", 1)
     cmd.set("transparency", 0.55)
+    # 빌드마다 있는 색 이름이 달라(deeppink 없음) 직접 정의한다
+    cmd.set_color("c_epi",  [0.86, 0.12, 0.45])   # 정답 결합 자리
+    cmd.set_color("c_ag",   [0.80, 0.80, 0.80])   # 항원 표면
+    cmd.set_color("c_true", [0.62, 0.78, 0.92])   # 정답 항체
+    cmd.set_color("c_pred", [0.95, 0.55, 0.10])   # 예측 항체
 
     # ── 정답 구조로 각도를 한 번 잡는다 ────────────────────────────────────
     cmd.load(native, "nat")
@@ -84,14 +93,24 @@ def main():
     n_epi = cmd.count_atoms("epi and name CA")
     print(f"[{tgt}] 항원={ag} 항체={ab} · 정답 결합자리 {n_epi}잔기")
     if n_epi == 0:
-        sys.exit("!! 정답 결합자리가 비었다 — chains.json 의 사슬 기호를 확인할 것")
+        cmd.load(native, "chk")
+        print("  !! 정답 결합자리가 비었다. native 의 실제 사슬:")
+        for c in sorted(set(cmd.get_chains("chk"))):
+            n = cmd.count_atoms(f"chk and polymer and chain {c} and name CA")
+            d = cmd.get_distance if False else None
+            mark = ("  ← chains.json 의 항원" if c in ag else
+                    ("  ← chains.json 의 항체" if c in ab else ""))
+            print(f"     사슬 {c}: {n}잔기{mark}")
+        print(f"     chains.json 항원={ag} 항체={ab}")
+        print("     → 사슬 기호가 다르면 --ag/--ab 로 직접 줄 것")
+        sys.exit(1)
 
     cmd.hide("everything")
     cmd.show("surface", "nat_ag")
-    cmd.color("grey80", "nat_ag")
-    cmd.color("deeppink", "epi")
+    cmd.color("c_ag", "nat_ag")
+    cmd.color("c_epi", "epi")
     cmd.show("cartoon", "nat_ab")
-    cmd.color("lightblue", "nat_ab")
+    cmd.color("c_true", "nat_ab")
     cmd.set("cartoon_transparency", 0.55, "nat_ab")   # 객체를 만든 뒤에 걸어야 한다
 
     cmd.orient("nat_ag or nat_ab")        # ★ 여기서 잡은 각도를 끝까지 쓴다
@@ -121,7 +140,7 @@ def main():
 
         cmd.hide("everything", "prd*")
         cmd.show("cartoon", "prd_ab")
-        cmd.color("orange", "prd_ab")
+        cmd.color("c_pred", "prd_ab")
         cmd.set("cartoon_transparency", 0, "prd_ab")
 
         cmd.set_view(VIEW)                 # ★ 각도 복원 — 패널마다 동일
