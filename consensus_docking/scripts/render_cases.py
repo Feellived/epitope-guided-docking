@@ -157,7 +157,8 @@ def main():
         cmd.hide("everything", "prd*")
         cmd.show("cartoon", "prd_ab")
         cmd.color("c_pred", "prd_ab")
-        cmd.set("cartoon_transparency", 0, "prd_ab")
+        # 살짝 비치게 — 예측 항체가 정답 결합 자리를 통째로 가리면 무엇을 덮었는지 안 보인다
+        cmd.set("cartoon_transparency", 0.25, "prd_ab")
 
         cmd.set_view(VIEW)                 # ★ 각도 복원 — 패널마다 동일
         # 카메라가 진짜 같은지 확인한다. native 무게중심과 뷰가 패널마다 같아야 한다
