@@ -54,8 +54,10 @@ def main():
     ap.add_argument("--target", required=True)
     ap.add_argument("--arms", default="noconstraint ours")
     ap.add_argument("--pick", default="first", help="자세 번호. 기본은 첫 번째")
-    ap.add_argument("--ag", default="", help="항원 사슬(공백 구분). 비우면 chains.json")
-    ap.add_argument("--ab", default="", help="항체 사슬(공백 구분). 비우면 chains.json")
+    ap.add_argument("--ag", default="", help="예측의 항원 사슬. 비우면 chains.json")
+    ap.add_argument("--ab", default="", help="예측의 항체 사슬. 비우면 chains.json")
+    ap.add_argument("--nat-ag", default="", help="native 의 항원 사슬. 비우면 예측과 같게")
+    ap.add_argument("--nat-ab", default="", help="native 의 항체 사슬. 비우면 자동으로 찾는다")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--out", required=True, help="접두사. <접두사>_<팔>.png 로 저장")
     ap.add_argument("--width", type=int, default=1200)
@@ -83,15 +85,28 @@ def main():
     cmd.set_color("c_pred", [0.95, 0.55, 0.10])   # 예측 항체
 
     # ── 정답 구조로 각도를 한 번 잡는다 ────────────────────────────────────
+    def sel(cs):
+        return " or ".join(f"chain {c}" for c in cs)
+
     cmd.load(native, "nat")
-    ag_sel = " or ".join(f"chain {c}" for c in ag)
-    ab_sel = " or ".join(f"chain {c}" for c in ab)
-    cmd.create("nat_ag", f"nat and polymer and ({ag_sel})")
-    cmd.create("nat_ab", f"nat and polymer and ({ab_sel})")
+    # ⚠️ native 와 예측이 같은 사슬 기호를 쓴다는 보장이 없다. 실제로 9zdu_HL 은
+    #    native 가 A/H/L 이고 예측은 A/B/C 였다. 그래서 양쪽을 따로 잡는다.
+    nat_chains = set(cmd.get_chains("nat"))
+    ag_n = a.nat_ag.split() if a.nat_ag else [c for c in ag if c in nat_chains]
+    ab_n = a.nat_ab.split() if a.nat_ab else [c for c in ab if c in nat_chains]
+    if not ab_n:                       # 항체 기호가 다르면 항원 밖 사슬을 항체로 본다
+        ab_n = sorted(nat_chains - set(ag_n))
+        print(f"  · native 에 항체 사슬 {ab} 가 없다 → 항원 밖 사슬을 항체로 본다: {ab_n}")
+    if not ag_n:
+        sys.exit(f"!! native 에 항원 사슬 {ag} 가 없다 (있는 것 {sorted(nat_chains)})")
+    ag_sel, ab_sel = sel(ag), sel(ab)                 # 예측 쪽
+    cmd.create("nat_ag", f"nat and polymer and ({sel(ag_n)})")
+    cmd.create("nat_ab", f"nat and polymer and ({sel(ab_n)})")
     cmd.delete("nat")
     cmd.select("epi", f"nat_ag within {a.cutoff} of nat_ab")
     n_epi = cmd.count_atoms("epi and name CA")
-    print(f"[{tgt}] 항원={ag} 항체={ab} · 정답 결합자리 {n_epi}잔기")
+    print(f"[{tgt}] native 항원={ag_n} 항체={ab_n} · 예측 항원={ag} 항체={ab} "
+          f"· 정답 결합자리 {n_epi}잔기")
     if n_epi == 0:
         cmd.load(native, "chk")
         print("  !! 정답 결합자리가 비었다. native 의 실제 사슬:")
