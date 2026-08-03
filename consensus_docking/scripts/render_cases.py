@@ -72,7 +72,6 @@ def main():
     cmd.bg_color("white")
     cmd.set("surface_quality", 1)
     cmd.set("transparency", 0.55)
-    cmd.set("cartoon_transparency", 0.55, "nat_ab")
 
     # ── 정답 구조로 각도를 한 번 잡는다 ────────────────────────────────────
     cmd.load(native, "nat")
@@ -93,6 +92,7 @@ def main():
     cmd.color("deeppink", "epi")
     cmd.show("cartoon", "nat_ab")
     cmd.color("lightblue", "nat_ab")
+    cmd.set("cartoon_transparency", 0.55, "nat_ab")   # 객체를 만든 뒤에 걸어야 한다
 
     cmd.orient("nat_ag or nat_ab")        # ★ 여기서 잡은 각도를 끝까지 쓴다
     cmd.zoom("nat_ag or nat_ab", 3)
