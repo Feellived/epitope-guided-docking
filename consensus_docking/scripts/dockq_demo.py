@@ -67,9 +67,19 @@ def main():
     ap.add_argument("--models", default="boltz protenix")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--csv", default="results/demo_dockq.csv")
+    ap.add_argument("--arms", default=" ".join(ARMS),
+                    help="채점할 팔. 기본은 다섯 팔 전부(예전과 같다). "
+                         "후보별 재도킹처럼 'ours' 만 있는 폴더는 --arms ours 로 "
+                         "주면 blind(자세 40개)를 폴더마다 다시 채점하지 않는다.")
     a = ap.parse_args()
     PF = load_pf(a.msad)
     models = a.models.replace(",", " ").split()
+    arms = [x for x in a.arms.replace(",", " ").split() if x in ARMS]
+    bad = [x for x in a.arms.replace(",", " ").split() if x not in ARMS]
+    if bad:
+        raise SystemExit(f"!! 모르는 팔: {bad}  (있는 것 = {ARMS})")
+    if not arms:
+        raise SystemExit("!! 채점할 팔이 없다")
     rows = []
 
     print(f"{'타깃':11}{'모델':9}{'팔':9}{'자세':>5}{'DockQ최고':>10}{'DockQ중앙':>10}"
@@ -96,7 +106,7 @@ def main():
 
         with tempfile.TemporaryDirectory() as td:
             for m in models:
-                for arm in ARMS:
+                for arm in arms:
                     if arm == "blind":
                         ds = blind_dir(a.msad_data, t, sj["model"], sj["depth"])
                         ps = [p for d in ds for p in poses_of(d)]
