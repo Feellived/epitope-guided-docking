@@ -74,6 +74,7 @@ def main():
     if not os.path.exists(native):
         sys.exit(f"!! native 가 없다: {native}")
 
+    cmd.set("auto_zoom", 0)        # 객체를 새로 올릴 때 카메라가 따라가지 않게
     cmd.set("ray_opaque_background", 1)
     cmd.bg_color("white")
     cmd.set("surface_quality", 1)
@@ -159,6 +160,11 @@ def main():
         cmd.set("cartoon_transparency", 0, "prd_ab")
 
         cmd.set_view(VIEW)                 # ★ 각도 복원 — 패널마다 동일
+        # 카메라가 진짜 같은지 확인한다. native 무게중심과 뷰가 패널마다 같아야 한다
+        com = cmd.centerofmass("nat_ag")
+        v = cmd.get_view()
+        print(f"      확인: native 무게중심 ({com[0]:.1f}, {com[1]:.1f}, {com[2]:.1f}) "
+              f"· 뷰 앞3 ({v[0]:.3f}, {v[1]:.3f}, {v[2]:.3f})")
         png = f"{a.out}_{arm}.png"
         cmd.png(png, width=a.width, height=a.height, dpi=200, ray=1)
         print(f"  {arm:<14} {LABEL.get(arm, arm):<16} 정렬 RMSD {rms:.2f} Å  → {png}")
