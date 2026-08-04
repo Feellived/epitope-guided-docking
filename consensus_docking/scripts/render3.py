@@ -39,6 +39,8 @@ for i in (1,2,3):
     f=E.get(f"P{i}")
     if not f: print(f"  ! P{i} 없음 — 건너뜀"); continue
     ag=E.get(f"AG{i}") or AGN; ab=E.get(f"AB{i}") or ABN
+    if not os.path.exists(f):
+        print(f"  ! P{i}: 파일이 없다 — 건너뜀  {f}"); continue
     cmd.delete("prd*"); cmd.load(f,"prd")
     cmd.create("prd_ag",f"prd and polymer and ({sel(ag)})")
     cmd.create("prd_ab",f"prd and polymer and ({sel(ab)})")
