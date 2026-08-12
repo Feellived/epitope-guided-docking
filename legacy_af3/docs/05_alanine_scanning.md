@@ -1,5 +1,8 @@
 # 05 — In-silico Alanine Scanning (전산 알라닌 스캐닝) 전처리 워크플로
 
+> ⚠️ **이 문서는 2026년 6월 시점 기준이며 이후 갱신하지 않았다.**
+> 현재 파이프라인은 `pipeline/` 에 있다. 배경은 `legacy_af3/README.md` 참조.
+
 이 문서는 **"항체의 어떤 잔기가 결합에 정말 중요한가"를 컴퓨터로 추정하는** 방법인
 *in-silico computational alanine scanning*의 개념과, 우리 프로젝트(AF3 항체-항원 도킹
 보강)에서 이를 돌리기 위한 **전처리 흐름**을 단계별로 설명한다.
