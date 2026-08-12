@@ -67,7 +67,7 @@ def run_discotope(repo, pdb, outdir, struc_type, python_bin):
     script = os.path.join(repo, "src", "predict_webserver.py")
     if not os.path.exists(script):
         sys.exit(f"!! DiscoTope-3.0 을 못 찾았다: {script}\n"
-                 f"   설치: bash scripts/setup_epitope_tools.sh --apply  (또는 --repo 로 경로 지정)")
+                 f"   설치: bash scripts/run_setup_tools.sh --apply  (또는 --repo 로 경로 지정)")
     cmd = [python_bin, script, "--pdb_or_zip_file", pdb, "--struc_type", struc_type,
            "--out_dir", outdir]
     print("  $ " + " ".join(cmd))

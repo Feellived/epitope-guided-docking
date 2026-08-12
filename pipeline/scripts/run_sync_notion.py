@@ -4,7 +4,7 @@
 토큰은 환경변수 NOTION_API_TOKEN 에서만 읽음 (하드코딩·공용서버 저장 금지).
 개인 Mac 등 토큰이 안전한 곳에서 실행:
   export NOTION_API_TOKEN=ntn_xxx
-  python sync_notion.py --csv results/summary.csv
+  python run_sync_notion.py --csv results/summary.csv
 이미 push한 행은 results/.notion_synced.txt 로 추적해 중복 방지.
 """
 import argparse, csv, json, os, sys, urllib.request, urllib.error

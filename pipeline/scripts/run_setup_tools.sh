@@ -13,10 +13,10 @@
 #    GPU 없이 CPU 로도 돈다(느릴 뿐).
 #
 # 사용:
-#   bash scripts/setup_epitope_tools.sh                 # 무엇을 할지만 출력
-#   bash scripts/setup_epitope_tools.sh --apply
-#   TOOLS=~/tools ENVNAME=discotope bash scripts/setup_epitope_tools.sh --apply
-#   bash scripts/setup_epitope_tools.sh --apply --only discotope
+#   bash scripts/run_setup_tools.sh                 # 무엇을 할지만 출력
+#   bash scripts/run_setup_tools.sh --apply
+#   TOOLS=~/tools ENVNAME=discotope bash scripts/run_setup_tools.sh --apply
+#   bash scripts/run_setup_tools.sh --apply --only discotope
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 TOOLS="${TOOLS:-$HOME/tools}"
@@ -78,7 +78,7 @@ fi
 if want abepitope; then
   echo; say "── AbEpiTope-1.0 ──"
   say "⚠️ 이 도구는 '항원 표면'이 아니라 '예측된 복합체'를 채점한다 → 후보마다 구조가 하나씩 필요하다"
-  say "   (그래서 prescreen_abepitope.sh 가 후보별로 1샘플씩 먼저 예측한다)"
+  say "   (그래서 run_prescreen_abepitope.sh 가 후보별로 1샘플씩 먼저 예측한다)"
   if [ -d "$TOOLS/AbEpiTope-1.0/.git" ]; then
     say "이미 받아져 있음 — 갱신만"
     run "git -C '$TOOLS/AbEpiTope-1.0' pull --ff-only"

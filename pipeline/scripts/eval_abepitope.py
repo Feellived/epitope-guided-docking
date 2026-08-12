@@ -10,7 +10,7 @@ AbEpiScore-1.0 은 **모델링된 항체-항원 계면이 얼마나 정확한가
 
 ═══ 흐름 (2패스) ═══
   ① make_pocket_from_sites.py --arm all   후보 전부를 제약 입력으로
-  ② 후보마다 값싸게 1샘플 예측       prescreen_abepitope.sh
+  ② 후보마다 값싸게 1샘플 예측       run_prescreen_abepitope.sh
   ③ 이 파일                        후보별 복합체 → results/abepitope_<타깃>.csv (cand,score)
   ④ select_site.py --method abepitope --scores ...   → 이긴 후보
   ⑤ 그 후보로 본 유도 예측
@@ -59,12 +59,12 @@ def main():
     act = os.path.join(a.repo, ".venv", "bin", "activate")
     if not os.path.exists(act):
         sys.exit(f"!! AbEpiTope venv 를 못 찾았다: {act}\n"
-                 f"   설치: bash scripts/setup_epitope_tools.sh --only abepitope --apply")
+                 f"   설치: bash scripts/run_setup_tools.sh --only abepitope --apply")
 
     st = find_structures(a.dir)
     if not st:
         sys.exit(f"!! {a.dir} 에서 patch<번호> 가 붙은 예측 구조를 못 찾았다.\n"
-                 f"   먼저: bash scripts/prescreen_abepitope.sh {a.target}")
+                 f"   먼저: bash scripts/run_prescreen_abepitope.sh {a.target}")
     print(f"■ {a.target}   후보 {len(st)}개의 예측 구조를 AbEpiScore-1.0 으로 채점")
 
     work = a.keep or tempfile.mkdtemp(prefix="abepi_")

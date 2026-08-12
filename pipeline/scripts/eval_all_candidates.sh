@@ -15,9 +15,9 @@
 #       합치기·천장 계산은 bk21-msa-depth-bias/pipeline/allcand_ceiling.py 가 한다.
 #
 # 사용 (pipeline/ 에서, DockQ 되는 env = boltz):
-#   bash scripts/score_allcand.sh                 # 무엇을 채점할지만 출력
-#   bash scripts/score_allcand.sh --apply
-#   ONLY="8k3k_D" bash scripts/score_allcand.sh --apply
+#   bash scripts/eval_all_candidates.sh                 # 무엇을 채점할지만 출력
+#   bash scripts/eval_all_candidates.sh --apply
+#   ONLY="8k3k_D" bash scripts/eval_all_candidates.sh --apply
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"

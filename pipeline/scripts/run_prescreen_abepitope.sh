@@ -16,16 +16,16 @@
 #   METHOD=manual PICK=<나온 번호> bash scripts/run_demo_guided.sh <타깃>
 #
 # 사용(pipeline/ 에서):
-#   bash scripts/prescreen_abepitope.sh 8k3k_D
-#   MODEL=protenix bash scripts/prescreen_abepitope.sh 8k3k_D
-#   ABEPITOPE_CMD="conda run -n abepitope ..." bash scripts/prescreen_abepitope.sh 8k3k_D
+#   bash scripts/run_prescreen_abepitope.sh 8k3k_D
+#   MODEL=protenix bash scripts/run_prescreen_abepitope.sh 8k3k_D
+#   ABEPITOPE_CMD="conda run -n abepitope ..." bash scripts/run_prescreen_abepitope.sh 8k3k_D
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
 T="${1:-}"
-[ -z "$T" ] && { echo "사용: bash scripts/prescreen_abepitope.sh <타깃>"; exit 1; }
+[ -z "$T" ] && { echo "사용: bash scripts/run_prescreen_abepitope.sh <타깃>"; exit 1; }
 MODEL="${MODEL:-boltz}"                 # 사전 스크리닝은 한 모델이면 충분
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"
 MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"

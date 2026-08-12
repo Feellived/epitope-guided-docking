@@ -110,7 +110,7 @@ def cmd_score(a):
                      f"   현재 파이썬: {a.python}\n"
                      f"   찾은 경로  : {a.repo}\n"
                      f"   해결 ① 패키지가 있는 conda env 에서 실행 (예: conda activate boltz)\n"
-                     f"   해결 ② venv 설치: bash scripts/setup_epitope_tools.sh --only abepitope --apply")
+                     f"   해결 ② venv 설치: bash scripts/run_setup_tools.sh --only abepitope --apply")
         print(f"■ venv 없이 현재 파이썬으로 실행한다 ({a.python})")
     print(f"■ 자세 {len(files)}개를 AbEpiScore-1.0 으로 채점 (묶음 {a.batch}개씩)")
 

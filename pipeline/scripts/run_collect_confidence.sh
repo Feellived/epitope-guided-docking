@@ -11,9 +11,9 @@
 #
 # 사용(집 갈 때, GPU 큼 → tmux):
 #   tmux new -s xtra
-#   ONLY=9k6j bash scripts/collect_full_confidence.sh      # ← 먼저 스모크(어떤 플래그가 있나 확인)
-#   bash scripts/collect_full_confidence.sh                # 전체(diverse 10 × Fab/Fv)
-#   MODELS="protenix" bash scripts/collect_full_confidence.sh   # 특정 모델만
+#   ONLY=9k6j bash scripts/run_collect_confidence.sh      # ← 먼저 스모크(어떤 플래그가 있나 확인)
+#   bash scripts/run_collect_confidence.sh                # 전체(diverse 10 × Fab/Fv)
+#   MODELS="protenix" bash scripts/run_collect_confidence.sh   # 특정 모델만
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
 RUN=runs_diverse

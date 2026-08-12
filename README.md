@@ -54,7 +54,7 @@
 |---|---|---|
 | `prep_` | 구조·서열·MSA 전처리 | `prep_chains.py` `prep_fv.py` `prep_a3m_sanitize.py` |
 | `make_` | 모델 입력 파일 생성 | `make_boltz.py` `make_pocket_from_haddock.py` |
-| `run_` | 실행 오케스트레이션(전부 `.sh`) | `run_diverse.sh` `run_tfold.sh` |
+| `run_` | 실행 오케스트레이션·설치·동기화 | `run_diverse.sh` `run_tfold.sh` `run_sync_notion.py` |
 | `eval_` | 예측 결과 채점 | `eval_boltz.py` `eval_guided_boltz.py` |
 | `select_` | 정답을 보지 않고 후보 선택 | `select_site.py` `select_report_pick.py` |
 | `analyze_` | 집계·진단·통계 | `analyze_consensus.py` `analyze_where_docked.py` |

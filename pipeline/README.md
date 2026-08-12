@@ -35,7 +35,7 @@
 3. `make_{boltz,chai,protenix,colabfold,tfold}.py` — 모델별 입력 생성
 4. 예측: `run_diverse.sh`(chai·protenix·colabfold) · `run_tfold.sh` · `run_5model.sh`
    → 각 `runs_diverse/<id>/{out_boltz,out_chai,out_protenix,out_colabfold,out_tfold}`
-5. eval: `eval_*.py` → `results/summary.csv`(source of truth) → `sync_notion.py`(개인 Mac, 토큰 env)
+5. eval: `eval_*.py` → `results/summary.csv`(source of truth) → `run_sync_notion.py`(개인 Mac, 토큰 env)
 6. 분석: `analyze_consensus.py`·`plot_iptm_dockq.py`(집계) /
    `analyze_antibody_side.py`·`analyze_where_docked.py`·`analyze_merged_dockq.py`(정밀 진단)
 7. 렌더: `plot_pose.py`·`plot_epitope.py` + `run_plot_cases_*.sh` → `figures/`

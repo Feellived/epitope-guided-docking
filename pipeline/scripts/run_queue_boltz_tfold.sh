@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 지금 돌고 있는 run_diverse(chai/protenix/colabfold)가 끝나면 → Boltz → tFold 순차 실행.
 # GPU 안 겹치게 대기(run_diverse.sh 프로세스 사라질 때까지) 후 시작. 이미 된 건 스킵(이어받기).
-# 새 tmux 창에서:  RUN=runs_rbd bash scripts/queue_boltz_tfold.sh
+# 새 tmux 창에서:  RUN=runs_rbd bash scripts/run_queue_boltz_tfold.sh
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 RUN="${RUN:-runs_rbd}"
