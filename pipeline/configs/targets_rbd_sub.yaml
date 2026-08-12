@@ -1,0 +1,62 @@
+# Study B/E2: RBD 9K6J류(off-hotspot) 세트 (select_rbd_subdominant.py 생성)
+rbd_subdominant:
+  - id: 9SBB
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: R, name: SARS-CoV-2 RBD}
+    keep_chains: [R, H, L]
+  - id: 9ML8
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 9ML9
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 9ZDU
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 8SDF
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: Z, name: SARS-CoV-2 RBD}
+    keep_chains: [Z, H, L]
+  - id: 8SDH
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 8SIT
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 8XSI
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: B, name: SARS-CoV-2 RBD}
+    keep_chains: [B, H, L]
+  - id: 8SIS
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 8SIQ
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, H, L]
+  - id: 8OWW
+    format: nanobody
+    antibody: {H: None}
+    antigen: {chain: A, name: SARS-CoV-2 RBD}
+    keep_chains: [A, None]
+  - id: 8P5M
+    format: Fab
+    antibody: {H: G, L: L}
+    antigen: {chain: I, name: SARS-CoV-2 RBD}
+    keep_chains: [I, G, L]
