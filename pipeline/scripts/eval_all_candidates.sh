@@ -12,7 +12,7 @@
 #      다시 채점하면 시간만 몇 배로 든다.
 #
 # 결과: results/allcand/c<번호>.csv  (+ 같은 이름의 .log)
-#       합치기·천장 계산은 bk21-msa-depth-bias/pipeline/allcand_ceiling.py 가 한다.
+#       합치기·천장 계산은 bk21-msa-depth-bias/pipeline/scripts/select_allcand_ceiling.py 가 한다.
 #
 # 사용 (pipeline/ 에서, DockQ 되는 env = boltz):
 #   bash scripts/eval_all_candidates.sh                 # 무엇을 채점할지만 출력
@@ -52,7 +52,7 @@ else
 fi
 
 # ── 채점용 보기 폴더 — 정직한 sites 를 쓰되 pose_features 등 코드도 보이게 ─────
-# .honest_view 에는 코드가 없어서 import pose_features 가 깨진다. 그래서 따로 만든다.
+# .honest_view 에는 코드가 없어서 import lib_pose_features 가 깨진다. 그래서 따로 만든다.
 USEMSAD="$MSAD"
 if [ -d "$HONEST" ] && ls "$HONEST"/sites_*.json >/dev/null 2>&1; then
   mkdir -p "$VIEW/results"
@@ -70,8 +70,8 @@ if [ -d "$HONEST" ] && ls "$HONEST"/sites_*.json >/dev/null 2>&1; then
 else
   say "! $HONEST 가 없다 — $MSAD 를 그대로 쓴다"
 fi
-if ! "$PY" -c "import sys;sys.path.insert(0,'$USEMSAD');import pose_features" 2>"$TMP/imp"; then
-  say "!! $USEMSAD 에서 pose_features 를 import 못 한다 ($PY). conda activate boltz 했는지 확인"
+if ! "$PY" -c "import sys;sys.path.insert(0,'$USEMSAD/scripts');import lib_pose_features" 2>"$TMP/imp"; then
+  say "!! $USEMSAD 에서 lib_pose_features 를 import 못 한다 ($PY). conda activate boltz 했는지 확인"
   sed 's/^/     /' "$TMP/imp" | tail -3
   exit 1
 fi
@@ -144,4 +144,4 @@ echo
 say "원본 확인: $MAIN 은 그대로여야 한다"
 ls -l "$MAIN" 2>/dev/null
 say "다음:"
-echo "  python -u $MSAD/allcand_ceiling.py --allcand $ROOT/$SAVE --dockq $ROOT/$MAIN"
+echo "  python -u $MSAD/scripts/select_allcand_ceiling.py --allcand $ROOT/$SAVE --dockq $ROOT/$MAIN"

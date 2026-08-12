@@ -34,8 +34,8 @@ ARM_EN = {"blind": "original-MSA runs (other model, larger pose budget)",
 
 
 def load_pf(msad):
-    sys.path.insert(0, msad)
-    import pose_features as PF                      # noqa: E402
+    sys.path.insert(0, os.path.join(msad, "scripts"))
+    import lib_pose_features as PF                      # noqa: E402
     return PF
 
 

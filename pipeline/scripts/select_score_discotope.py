@@ -24,8 +24,8 @@ import argparse, csv, glob, json, os, subprocess, sys, tempfile
 
 
 def load_msad(msad):
-    sys.path.insert(0, msad)
-    import epitope_recall as ER                      # noqa: E402
+    sys.path.insert(0, os.path.join(msad, "scripts"))
+    import lib_epitope_recall as ER                      # noqa: E402
     return ER
 
 

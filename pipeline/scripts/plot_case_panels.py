@@ -50,7 +50,7 @@ for i in (1,2,3):
     except Exception: rms=cmd.align("prd_ag","nat_ag")[0]
     cmd.matrix_copy("prd_ag","prd_ab")
     cmd.hide("everything","prd*"); cmd.show("cartoon","prd_ab")
-    cmd.color("c_pred","prd_ab"); cmd.set("cartoon_transparency",0.25,"prd_ab")
+    cmd.color("c_pred","prd_ab"); cmd.set("cartoon_transparency",0.0,"prd_ab")
     cmd.set_view(V)
     p=f"{E['OUT']}.p{i}.png"; cmd.png(p,width=1200,height=1000,dpi=200,ray=1)
     outs.append(p); print(f"  패널 {i}  정렬 RMSD {rms:.2f} Å → {p}")

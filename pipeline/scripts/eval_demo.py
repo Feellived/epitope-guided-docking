@@ -7,7 +7,7 @@
 
 판정은 **(c) > (b)**. (c) > (a) 만 보이면 '제약을 주면 좋아진다'와 구별되지 않는다.
 
-채점 자체는 bk21-msa-depth-bias 의 pose_features 를 그대로 쓴다(같은 DockQ·같은 결합자리
+채점 자체는 bk21-msa-depth-bias 의 lib_pose_features 를 그대로 쓴다(같은 DockQ·같은 결합자리
 정의라야 팔끼리 비교가 성립한다). 그래서 --msad 로 그 pipeline 경로를 받아 import 한다.
 
 사용(DockQ env):
@@ -20,8 +20,8 @@ ARMS = ["blind", "noconstraint", "fullmsa", "sizematch", "ours"]
 
 
 def load_pf(msad):
-    sys.path.insert(0, msad)
-    import pose_features as PF                      # noqa: E402
+    sys.path.insert(0, os.path.join(msad, "scripts"))
+    import lib_pose_features as PF                      # noqa: E402
     return PF
 
 

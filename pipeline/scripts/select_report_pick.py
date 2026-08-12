@@ -30,8 +30,8 @@ def main():
     ap.add_argument("--out", default="results/picked_by_abepi.csv")
     a = ap.parse_args()
 
-    sys.path.insert(0, a.msad)
-    import pose_features as PF                                   # noqa: E402
+    sys.path.insert(0, os.path.join(a.msad, "scripts"))
+    import lib_pose_features as PF                                   # noqa: E402
 
     canon = {d.lower(): d for d in os.listdir(os.path.join(a.msad, "targets"))}
     rows = []
