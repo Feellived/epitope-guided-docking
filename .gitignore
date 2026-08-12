@@ -35,14 +35,24 @@ env/
 .DS_Store
 .idea/
 *.swp
-consensus_docking/runs/
-consensus_docking/results/.notion_synced.txt
+
+# --- 대용량 산출물 (서버에만 두고 커밋하지 않는다) ---
+# 슬래시 없이 적어 심링크도 함께 차단한다.
+pipeline/runs
+pipeline/runs_*
+pipeline/haddock
+pipeline/haddock_*
+pipeline/zdock
+pipeline/complexes
+pipeline/tfold
+pipeline/DeepRank-GNN-esm
+pipeline/dataset/structures
+pipeline/dataset/targets
+
+# PyMOL 세션·로그·즉석 렌더는 추적하지 않는다.
+# figures/adhoc/ 은 2026-08-12 정리에서 추적 해제했다(파일은 서버·로컬 디스크에 남아 있다).
 *.pse
 *.log
-consensus_docking/runs_diverse/
-consensus_docking/tfold/
-consensus_docking/DeepRank-GNN-esm/
-consensus_docking/fig/
-consensus_docking/results/*.png
-consensus_docking/runs
-consensus_docking/runs_diverse
+pipeline/figures/adhoc/
+pipeline/results/*.png
+pipeline/results/.notion_synced.txt

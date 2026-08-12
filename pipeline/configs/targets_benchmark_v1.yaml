@@ -1,0 +1,43 @@
+# 벤치마크 v1 — 초기 co-folder 비교에 쓴 6개 복합체 (개발용 9VP0 + 벤치마크 5)
+# leakage 판정 = RCSB initial_release_date. 사슬역할 = SAbDab.
+# keep_chains = 예측/DockQ에 쓸 사슬 (다중카피는 1:1 한 쌍만).
+
+dev_case:
+  - id: 9VP0            # 개발/디버깅용 (벤치마크 아님)
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: IL-31}
+    keep_chains: [A, H, L]
+    rcsb_release: 2025-10   # AF3/Boltz-2 clean, Protenix-v2(2026)엔 노출 가능
+
+benchmark_v1:          # 전부 2026 공개 → 모든 모델 clean
+  - id: 10ZO
+    format: nanobody
+    antibody: {H: A}
+    antigen: {chain: B, name: Mengla virus nucleoprotein}
+    keep_chains: [A, B]
+    rcsb_release: 2026-03-25
+  - id: 9Y0A
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: Bet v 1 birch allergen}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-02-11
+  - id: 9OBN
+    format: nanobody
+    antibody: {H: E}
+    antigen: {chain: A, name: Pfs48/45 malaria antigen}
+    keep_chains: [A, E]
+    rcsb_release: 2026-01-21
+  - id: 9K6J
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: SARS-CoV-2 RBD}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-01-07
+  - id: 9XF9
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: Kasokero virus endonuclease}
+    keep_chains: [A, H, L]
+    rcsb_release: 2026-05-06

@@ -1,0 +1,68 @@
+# 다양-항원 clean Fab 벤치마크 (메인 도킹/특성분석용) — 2026-07-09 작성
+# 전부 2024+ 공개 = 모든 co-folder 학습 컷오프 이후(leakage-free). 나노바디 제외, Fab만.
+# 전부 단일카피 1:1 (다중카피 배제). leakage 판정 = RCSB initial_release_date. 사슬 = auth_asym_id.
+# Fv(VH+VL) 세트는 prep_fv.py로 파생(runs/<id>_fv).
+# 2026-07-10: 펩타이드 항원 2개 제거 → 9T46(CD3ε, 항원 8잔기)·9ZMB(CSP, 항원 19잔기).
+#   선형 펩타이드 계면이라 Fab-단백질 도킹 벤치에 부적합(DockQ 불안정). 최종 10개.
+
+benchmark_v2:
+  - id: 9K6J            # 기존·예측 결과 보유 (유일 RBD)
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: SARS-CoV-2 RBD}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-01-07
+  - id: 9XF9            # 기존
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: Kasokero virus endonuclease}
+    keep_chains: [A, H, L]
+    rcsb_release: 2026-05-06
+  - id: 9Y0A            # 기존
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: Bet v 1 birch allergen}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-02-11
+  - id: 9VXL            # CD38 (골수종, Fc 효과기 — 랩)
+    format: Fab
+    antibody: {H: B, L: C}
+    antigen: {chain: A, name: CD38 ADP-ribosyl cyclase 1}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-05-27
+  - id: 9LY5            # CD276 / B7-H3 (종양 면역치료·ADC/CAR 표적)
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: CD276 B7-H3}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-03-04
+  - id: 9MQR            # ADGRE5/CD97 (GPCR — 어려운/독특)
+    format: Fab
+    antibody: {H: D, L: E}
+    antigen: {chain: A, name: ADGRE5 CD97 GPCR}
+    keep_chains: [A, D, E]
+    rcsb_release: 2025-09-24
+  - id: 9KKJ            # Nectin-4 (종양 ADC 표적)
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: Nectin-4}
+    keep_chains: [A, H, L]
+    rcsb_release: 2025-11-19
+  - id: 9W43            # PD-1 (체크포인트)
+    format: Fab
+    antibody: {H: A, L: B}
+    antigen: {chain: C, name: PD-1}
+    keep_chains: [A, B, C]
+    rcsb_release: 2026-07-01
+  - id: 9YC6            # uPAR (종양 침윤 수용체)
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: U, name: uPAR urokinase receptor}
+    keep_chains: [H, L, U]
+    rcsb_release: 2026-02-04
+  - id: 9J4C            # Plexin-A1 (세마포린 신경 수용체 — 독특)
+    format: Fab
+    antibody: {H: H, L: L}
+    antigen: {chain: A, name: Plexin-A1}
+    keep_chains: [A, H, L]
+    rcsb_release: 2026-01-21
