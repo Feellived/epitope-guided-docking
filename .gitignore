@@ -56,3 +56,11 @@ pipeline/dataset/targets
 pipeline/figures/adhoc/
 pipeline/results/*.png
 pipeline/results/.notion_synced.txt
+
+# --- 예측 도구 작업 폴더·부산물 (2026-08-12 서버 이관에서 드러난 것) ---
+pipeline/foldseek
+pipeline/tmp_fs
+pipeline/msearch*
+pipeline/*.zip
+pipeline/*.png
+pipeline/*.pse
