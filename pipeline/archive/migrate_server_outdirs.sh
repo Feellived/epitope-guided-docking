@@ -4,9 +4,9 @@
 # reader(diagnose/where_docked/merge_dockq/eval_boltz)는 *boltz/*colabfold suffix로 양쪽 호환 →
 # 이 rename은 '정리'일 뿐, 안 해도 Phase 0는 정상 동작.
 #
-# ★ 기본 dry-run(미리보기). 실제 적용은 --apply. 공용계정(admuser) — 내 폴더 밖 절대 안 건드림.
+# ★ 기본 dry-run(미리보기). 실제 적용은 --apply. 공용 계정 — 내 폴더 밖 절대 안 건드림.
 # 사용(서버):
-#   cd ~/projects/bk21-antibody-ml/pipeline
+#   cd ~/projects/epitope-guided-docking/pipeline
 #   bash scripts/migrate_server_outdirs.sh            # 미리보기
 #   bash scripts/migrate_server_outdirs.sh --apply    # 실제 rename
 #   RUN=runs bash scripts/migrate_server_outdirs.sh   # 옛 해커톤 세트에도 적용하려면

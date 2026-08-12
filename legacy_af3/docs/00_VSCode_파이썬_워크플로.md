@@ -108,7 +108,7 @@ VSCode는 **파일 하나**가 아니라 **폴더(프로젝트) 단위**로 여�
 - **왜:** 스크립트 경로(`scripts/...`), 가상환경(`.venv`), git이 모두 이 폴더를
   기준으로 동작하게 하려고.
 - **어떻게:** 상단 메뉴 **File > Open Folder...** →
-  `/Users/zzuhyeong2/projects/bk21-antibody-ml` 선택 → **Open**.
+  `~/projects/epitope-guided-docking` 선택 → **Open**.
   - 처음 열면 작성자를 신뢰하느냐는 프롬프트(예: "Do you trust the authors of the
     files in this folder?")가 뜰 수 있다. 내 폴더이므로 신뢰(Yes/Trust)를 고른다.
   - 왼쪽 **탐색기(Explorer, 종이 두 장 아이콘 / `Cmd+Shift+E`)**에

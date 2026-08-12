@@ -9,7 +9,7 @@ set -uo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"          # .../pipeline/dataset
 cd "$HERE" || exit 1
 COF="${1:?boltz|protenix}"; HOURS="${2:-11}"
-DATA="${DATA:-/mnt/data/admuser/msadepth}"      # ⚠️ 대용량 출력 = /mnt/data(홈 금지)
+DATA="${DATA:-/mnt/data/msadepth}"      # ⚠️ 대용량 출력 = /mnt/data(홈 금지)
 LADDIR="$DATA/ladders"; RUNGS="${RUNGS:-6}"; SAMP="${SAMP:-5}"; SEED="${SEED:-0}"; SMOKE="${SMOKE:-0}"
 DIVERSE="${DIVERSE:-$HERE/../runs_diverse}"      # C 재활용 위치(서버 확인)
 LIST="${LIST:-$HERE/sweep_targets.csv}"
@@ -26,7 +26,7 @@ case "$COF" in
     DONE(){ find "$1/results" -name '*_model_*.cif' 2>/dev/null | grep -q .; } ;;
   protenix)
     conda activate "${PROT_ENV:-protenix}" 2>/dev/null
-    export PROTENIX_ROOT_DIR="${PROTENIX_ROOT_DIR:-/mnt/data/admuser/protenix_weights}" LAYERNORM_TYPE=torch
+    export PROTENIX_ROOT_DIR="${PROTENIX_ROOT_DIR:-/mnt/data/protenix_weights}" LAYERNORM_TYPE=torch
     command -v protenix >/dev/null || { say "!! protenix 없음"; exit 1; }
     : "${PROT_MODEL:?Protenix base(2021-09) 모델명 지정: PROT_MODEL=... (2025 leaky 금지)}"
     EXT="json"

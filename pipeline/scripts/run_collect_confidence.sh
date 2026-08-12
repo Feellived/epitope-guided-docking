@@ -49,7 +49,7 @@ for model in $MODELS; do
     protenix)
       conda activate "$PROT_ENV" 2>/dev/null
       command -v protenix >/dev/null || { say "!! protenix 없음 → 스킵"; continue; }
-      export PROTENIX_ROOT_DIR="${PROTENIX_ROOT_DIR:-/mnt/data/admuser/protenix_weights}" LAYERNORM_TYPE=torch
+      export PROTENIX_ROOT_DIR="${PROTENIX_ROOT_DIR:-/mnt/data/protenix_weights}" LAYERNORM_TYPE=torch
       flag=$(protenix pred --help 2>&1 | grep -oiE -- '--write_pae|--save_pae|--output_pae|--write-pae' | head -1)
       if [ -z "$flag" ]; then say "!! protenix에 PAE 저장 플래그 없음 → SKIP (protenix pred --help 확인 필요; base 미지원일 수 있음)"; continue; fi
       say "  플래그 감지: $flag  (PAE 매트릭스 출력)"
@@ -63,7 +63,7 @@ for model in $MODELS; do
     chai)
       conda activate "$CHAI_ENV" 2>/dev/null
       command -v chai-lab >/dev/null || { say "!! chai-lab 없음 → 스킵"; continue; }
-      export CHAI_DOWNLOADS_DIR="${CHAI_DOWNLOADS_DIR:-/mnt/data/admuser/chai_downloads}"
+      export CHAI_DOWNLOADS_DIR="${CHAI_DOWNLOADS_DIR:-/mnt/data/chai_downloads}"
       flag=$(chai-lab fold --help 2>&1 | grep -oiE -- '--save-pae|--write-pae|--output-pae|--pae' | head -1)
       if [ -z "$flag" ]; then
         say "!! chai-lab fold에 PAE 저장 옵션 없음 → SKIP. Chai PAE는 CLI로 안 나옴(issue#348):"

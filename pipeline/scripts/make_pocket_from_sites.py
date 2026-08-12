@@ -3,7 +3,7 @@
 
 make_pocket_from_haddock.py / make_pocket_from_zdock.py 의 형제. 힌트의 **출처만 다르다**:
   · zdock/haddock 판 = 물리 도커 pose 에서 뽑은 표면 패치
-  · 이 파일        = bk21-msa-depth-bias 본 검정에서 'MSA 조성을 바꿔' 얻은 결합자리 후보
+  · 이 파일        = msa-composition-bias 본 검정에서 'MSA 조성을 바꿔' 얻은 결합자리 후보
 emit 포맷·pocket 규약은 make_pocket_from_zdock.py 의 함수를 그대로 재사용한다(중복 구현 금지).
 
 ═══ 세 팔(arm) — 왜 셋인가 ═══
@@ -20,8 +20,8 @@ co-folder pocket 제약 = (사슬 id, 서열 1-based 위치)
 → 사슬 순번을 chains.json 의 role=="antigen" 순서로 id 에 대응시키고, 위치에 +1.
 
 사용(pipeline/ 에서):
-  python scripts/make_pocket_from_sites.py --sites ~/projects/bk21-msa-depth-bias/pipeline/results/sites_8k3k_D.json \\
-      --chains ~/projects/bk21-msa-depth-bias/pipeline/targets/8k3k_D/chains.json \\
+  python scripts/make_pocket_from_sites.py --sites ~/projects/msa-composition-bias/pipeline/results/sites_8k3k_D.json \\
+      --chains ~/projects/msa-composition-bias/pipeline/targets/8k3k_D/chains.json \\
       --arm ours --cand 1 --emit boltz,protenix
   python scripts/make_pocket_from_sites.py --sites ... --chains ... --arm fullmsa --emit boltz,protenix
 필요: biopython 불필요(좌표를 안 읽는다). tfold emit 시 torch.

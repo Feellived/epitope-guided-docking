@@ -7,7 +7,7 @@
 
 판정은 **(c) > (b)**. (c) > (a) 만 보이면 '제약을 주면 좋아진다'와 구별되지 않는다.
 
-채점 자체는 bk21-msa-depth-bias 의 lib_pose_features 를 그대로 쓴다(같은 DockQ·같은 결합자리
+채점 자체는 msa-composition-bias 의 lib_pose_features 를 그대로 쓴다(같은 DockQ·같은 결합자리
 정의라야 팔끼리 비교가 성립한다). 그래서 --msad 로 그 pipeline 경로를 받아 import 한다.
 
 사용(DockQ env):
@@ -62,8 +62,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--targets", required=True)
     ap.add_argument("--outdir", default="runs_sites_guided")
-    ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
-    ap.add_argument("--msad-data", default="/mnt/data/admuser/msadepth")
+    ap.add_argument("--msad", default=os.path.expanduser("~/projects/msa-composition-bias/pipeline"))
+    ap.add_argument("--msad-data", default="/mnt/data/msadepth")
     ap.add_argument("--models", default="boltz protenix")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--csv", default="results/demo_dockq.csv")

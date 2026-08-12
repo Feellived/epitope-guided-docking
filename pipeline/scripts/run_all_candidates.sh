@@ -24,7 +24,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"
-MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
+MSAD="${MSAD:-$HOME/projects/msa-composition-bias/pipeline}"
 HONEST="${HONEST:-$MSAD/results/honest}"
 SHADOW="${SHADOW:-$MSAD/.honest_view}"
 OUTBASE="${OUTBASE:-runs_allcand}"

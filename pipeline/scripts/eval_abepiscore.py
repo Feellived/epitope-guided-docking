@@ -18,13 +18,13 @@
 사용 (pipeline/ 에서. AbEpiTope venv 는 ~/tools/AbEpiTope-1.0/.venv)
   # ① 8ulr_HL 의 조성 실행 자세 전부 채점
   python scripts/eval_abepiscore.py score \\
-      --glob '/mnt/data/admuser/msadepth/compreps/seedrep_cand/protenix/8ulr_HL/**/*.cif' \\
+      --glob '/mnt/data/msadepth/compreps/seedrep_cand/protenix/8ulr_HL/**/*.cif' \\
       --out results/abepiscore_8ulr_HL.csv
 
   # ② 정답과 맞대기 (compreps CSV 또는 pose_features.csv)
   python scripts/eval_abepiscore.py eval \\
       --scores results/abepiscore_8ulr_HL.csv \\
-      --truth ~/projects/bk21-msa-depth-bias/pipeline/results/compreps_8ulr_HL.csv
+      --truth ~/projects/msa-composition-bias/pipeline/results/compreps_8ulr_HL.csv
 
   # 데모 자세에 적용 (자세 5개 중 하나를 고르는 층)
   python scripts/eval_abepiscore.py score --glob 'runs_sites_guided/8k3k_d/**/*.cif' \\

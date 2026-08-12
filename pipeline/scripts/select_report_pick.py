@@ -25,7 +25,7 @@ def arm_of(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--scores", nargs="+", required=True, help="eval_abepiscore.py score 결과 CSV")
-    ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
+    ap.add_argument("--msad", default=os.path.expanduser("~/projects/msa-composition-bias/pipeline"))
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--out", default="results/picked_by_abepi.csv")
     a = ap.parse_args()

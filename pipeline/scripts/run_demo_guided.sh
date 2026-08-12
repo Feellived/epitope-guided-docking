@@ -3,7 +3,7 @@
 # [데모] MSA 조성 → 결합자리 후보 → (선택) → 유도 재도킹 → DockQ 상승 확인.
 #
 # 흐름 (한 타깃):
-#   ① 생성  bk21-msa-depth-bias 본 검정 결과 = results/sites_<타깃>.json  (이미 있어야 함)
+#   ① 생성  msa-composition-bias 본 검정 결과 = results/sites_<타깃>.json  (이미 있어야 함)
 #   ② 선택  select_site.py  → 후보 하나 (정답 구조를 보지 않음. --method manual 은 예외)
 #   ③ 유도  make_pocket_from_sites.py → co-folder pocket 제약 입력 (네 팔)
 #   ④ 실행  boltz / protenix 를 blind 와 **같은 커맨드**로, 제약만 붙여서
@@ -28,7 +28,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
-MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
+MSAD="${MSAD:-$HOME/projects/msa-composition-bias/pipeline}"
 TARGETS="${1:-}"
 [ -z "$TARGETS" ] && { echo "사용: bash scripts/run_demo_guided.sh \"<타깃> [타깃...]\"  (예: 8k3k_D)"; exit 1; }
 MODELS="${MODELS:-boltz protenix}"
@@ -38,7 +38,7 @@ BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"
 # ⚠️ blind 팔(msa-depth 본 검정)이 쓴 것과 **같은 모델**이어야 세 팔 비교가 성립한다.
 #    comp_x_reps.sh 의 기본값과 맞춘다(RBD/본검정 세트 = default).
 PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
-MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"
+MSAD_DATA="${MSAD_DATA:-/mnt/data/msadepth}"
 OUTDIR="${OUTDIR:-runs_sites_guided}"
 SEED="${SEED:-42}"
 # 돌릴 팔. 값싼 사전 훑기는 ARMS=ours 로 (다섯 팔 다 돌리지 않고 우리 팔만 본다).
@@ -91,7 +91,7 @@ for T in $TARGETS; do
       boltz)    conda activate "$BOLTZ_ENV" 2>/dev/null
                 command -v boltz >/dev/null || { say "!! boltz 없음 — 건너뜀"; continue; } ;;
       protenix) conda activate "$PROT_ENV" 2>/dev/null
-                export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+                export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
                 command -v protenix >/dev/null || { say "!! protenix 없음 — 건너뜀"; continue; } ;;
     esac
     for ARM in $ARMS; do

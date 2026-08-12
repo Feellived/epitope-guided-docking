@@ -12,7 +12,7 @@ SMOKE="${SMOKE:-0}"; OUTDIR="${OUTDIR:-runs_guided_prot}"; GEN_ARGS="${GEN_ARGS:
 PROT_ENV="${PROT_ENV:-protenix}"; PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"; SEED="${SEED:-101}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 conda activate "$PROT_ENV" 2>/dev/null
-export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
 command -v protenix >/dev/null || { say "!! protenix 없음 (conda activate $PROT_ENV?)"; exit 1; }
 
 # 1) HADDOCK 패치 → guided JSON 생성

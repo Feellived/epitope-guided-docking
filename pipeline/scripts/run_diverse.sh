@@ -45,12 +45,12 @@ for model in $MODELS; do
   case $model in
     chai)
       conda activate "$CHAI_ENV" 2>/dev/null
-      export CHAI_DOWNLOADS_DIR=/mnt/data/admuser/chai_downloads
+      export CHAI_DOWNLOADS_DIR=/mnt/data/chai_downloads
       command -v chai-lab >/dev/null || { say "!! chai-lab 없음 (env '$CHAI_ENV' 확인) → 스킵"; continue; }
       out=out_chai ;;
     protenix)
       conda activate "$PROT_ENV" 2>/dev/null
-      export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights
+      export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights
       export LAYERNORM_TYPE=torch
       command -v protenix >/dev/null || { say "!! protenix 없음 (env '$PROT_ENV' 확인) → 스킵"; continue; }
       say "  PROT_MODEL=$PROT_MODEL"

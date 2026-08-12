@@ -24,8 +24,8 @@ import argparse, glob, json, os, sys
 
 from pymol import cmd
 
-MSAD = os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline")
-RUNS = os.path.expanduser("~/projects/bk21-antibody-ml/pipeline/runs_sites_guided_honest")
+MSAD = os.path.expanduser("~/projects/msa-composition-bias/pipeline")
+RUNS = os.path.expanduser("~/projects/epitope-guided-docking/pipeline/runs_sites_guided_honest")
 LABEL = {"noconstraint": "제약 없음", "fullmsa": "원래 MSA 자리",
          "sizematch": "같은 크기 다른 자리", "ours": "조성이 고른 자리"}
 

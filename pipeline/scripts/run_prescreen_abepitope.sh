@@ -23,12 +23,12 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 source ~/miniconda3/etc/profile.d/conda.sh 2>/dev/null
-MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
+MSAD="${MSAD:-$HOME/projects/msa-composition-bias/pipeline}"
 T="${1:-}"
 [ -z "$T" ] && { echo "사용: bash scripts/run_prescreen_abepitope.sh <타깃>"; exit 1; }
 MODEL="${MODEL:-boltz}"                 # 사전 스크리닝은 한 모델이면 충분
 BOLTZ_ENV="${BOLTZ_ENV:-boltz}"; PROT_ENV="${PROT_ENV:-protenix}"
-MSAD_DATA="${MSAD_DATA:-/mnt/data/admuser/msadepth}"
+MSAD_DATA="${MSAD_DATA:-/mnt/data/msadepth}"
 PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"   # blind 팔과 같은 모델
 OUTDIR="${OUTDIR:-runs_sites_guided}"
 SEED="${SEED:-42}"
@@ -50,7 +50,7 @@ case "$MODEL" in
   boltz)    conda activate "$BOLTZ_ENV" 2>/dev/null
             command -v boltz >/dev/null || { say "!! boltz 없음"; exit 1; } ;;
   protenix) conda activate "$PROT_ENV" 2>/dev/null
-            export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+            export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
             command -v protenix >/dev/null || { say "!! protenix 없음"; exit 1; } ;;
 esac
 

@@ -9,7 +9,7 @@ PROT_MODEL="${PROT_MODEL:-protenix_base_default_v1.0.0}"
 TARGETS="${1:-8P5M 8SDF 8SIQ 8SIS 8SIT 8XSI 9ML8 9ML9 9SBB 9ZDU}"; DEPTHS="${2:-143 8 1}"
 say(){ echo "[$(date '+%m-%d %H:%M:%S')] $*"; }
 conda activate "$PROT_ENV" 2>/dev/null
-export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
 command -v protenix >/dev/null || { say "!! protenix 없음(env $PROT_ENV)"; exit 1; }
 for D in $DEPTHS; do
   RUN="runs_msad_${D}"

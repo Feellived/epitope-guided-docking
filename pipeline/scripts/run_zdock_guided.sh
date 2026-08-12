@@ -37,7 +37,7 @@ case "$MODEL" in
     conda activate "$BOLTZ_ENV" 2>/dev/null; command -v boltz >/dev/null || { say "!! boltz 없음"; exit 1; } ;;
   protenix)
     conda activate "$PROT_ENV" 2>/dev/null
-    export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+    export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
     command -v protenix >/dev/null || { say "!! protenix 없음"; exit 1; } ;;
   tfold)
     conda activate "$TFOLD_ENV" 2>/dev/null

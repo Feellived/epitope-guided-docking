@@ -110,8 +110,8 @@ def parse_discotope(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", required=True)
-    ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
-    ap.add_argument("--msad-data", default="/mnt/data/admuser/msadepth")
+    ap.add_argument("--msad", default=os.path.expanduser("~/projects/msa-composition-bias/pipeline"))
+    ap.add_argument("--msad-data", default="/mnt/data/msadepth")
     ap.add_argument("--repo", default=os.path.expanduser("~/tools/discotope3_web"))
     ap.add_argument("--python", default=sys.executable, help="DiscoTope env 의 python")
     ap.add_argument("--from", dest="src", default="pred", choices=["pred", "native"],

@@ -64,4 +64,4 @@
 
 데모·honest·allcand 흐름(`run_demo_guided.sh`·`run_honest_guided.sh`·`run_all_candidates.sh`·
 `make_pocket_from_sites.py`·`select_score_discotope.py`)은 형제 레포
-`bk21-msa-depth-bias/pipeline`을 하드코딩 경로로 참조한다. 그 레포가 없으면 동작하지 않는다.
+`msa-composition-bias/pipeline`을 하드코딩 경로로 참조한다. 그 레포가 없으면 동작하지 않는다.

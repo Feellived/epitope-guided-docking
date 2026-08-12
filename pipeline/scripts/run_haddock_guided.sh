@@ -38,7 +38,7 @@ python scripts/make_pocket_from_haddock.py --targets "$TARGETS" --emit "$MODEL" 
 case "$MODEL" in
   boltz)    conda activate "$BOLTZ_ENV" 2>/dev/null; command -v boltz >/dev/null || { say "!! boltz 없음"; exit 1; } ;;
   protenix) conda activate "$PROT_ENV" 2>/dev/null
-            export PROTENIX_ROOT_DIR=/mnt/data/admuser/protenix_weights LAYERNORM_TYPE=torch
+            export PROTENIX_ROOT_DIR=/mnt/data/protenix_weights LAYERNORM_TYPE=torch
             command -v protenix >/dev/null || { say "!! protenix 없음"; exit 1; }
             say "PROT_MODEL=$PROT_MODEL (blind과 동일 모델)" ;;
   tfold)    conda activate "$TFOLD_ENV" 2>/dev/null

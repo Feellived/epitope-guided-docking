@@ -12,7 +12,7 @@
 #      다시 채점하면 시간만 몇 배로 든다.
 #
 # 결과: results/allcand/c<번호>.csv  (+ 같은 이름의 .log)
-#       합치기·천장 계산은 bk21-msa-depth-bias/pipeline/scripts/select_allcand_ceiling.py 가 한다.
+#       합치기·천장 계산은 msa-composition-bias/pipeline/scripts/select_allcand_ceiling.py 가 한다.
 #
 # 사용 (pipeline/ 에서, DockQ 되는 env = boltz):
 #   bash scripts/eval_all_candidates.sh                 # 무엇을 채점할지만 출력
@@ -22,7 +22,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"
 
-MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
+MSAD="${MSAD:-$HOME/projects/msa-composition-bias/pipeline}"
 HONEST="${HONEST:-$MSAD/results/honest}"
 VIEW="${VIEW:-$MSAD/.score_view}"
 OUTBASE="${OUTBASE:-runs_allcand}"

@@ -63,8 +63,8 @@ def main():
                     help="blind 는 다른 모델·다른 자세 예산이라 기본 비교에서 제외한다")
     ap.add_argument("--outdir", default="runs_sites_guided")
     ap.add_argument("--outpng", default="fig")
-    ap.add_argument("--msad", default=os.path.expanduser("~/projects/bk21-msa-depth-bias/pipeline"))
-    ap.add_argument("--msad-data", default="/mnt/data/admuser/msadepth")
+    ap.add_argument("--msad", default=os.path.expanduser("~/projects/msa-composition-bias/pipeline"))
+    ap.add_argument("--msad-data", default="/mnt/data/msadepth")
     ap.add_argument("--models", default="boltz protenix")
     ap.add_argument("--cutoff", type=float, default=5.0)
     ap.add_argument("--by", choices=["dockq", "recall", "both"], default="both",

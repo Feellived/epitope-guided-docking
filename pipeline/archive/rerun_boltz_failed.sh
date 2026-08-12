@@ -5,7 +5,7 @@
 # ⚠️ GPU 사용 — AF2-M/tFold 스모크가 GPU 점유 중이면 끝난 뒤 실행(동시=OOM 위험).
 cd "$(dirname "$0")/.." || exit 1
 TARGETS="${*:-9ly5 9w43}"
-CACHE=/mnt/data/admuser/boltz
+CACHE=/mnt/data/boltz
 for t in $TARGETS; do
   d=runs_diverse/$t
   [ -d "$d" ] || { echo "[skip] $d 없음"; continue; }

@@ -23,7 +23,7 @@
 # ══════════════════════════════════════════════════════════════════════════════
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1; ROOT="$(pwd)"
-MSAD="${MSAD:-$HOME/projects/bk21-msa-depth-bias/pipeline}"
+MSAD="${MSAD:-$HOME/projects/msa-composition-bias/pipeline}"
 HONEST="${HONEST:-$MSAD/results/honest}"
 PICKCSV="${PICKCSV:-$HONEST/pick_abepi_max.csv}"
 SHADOW="${SHADOW:-$MSAD/.honest_view}"

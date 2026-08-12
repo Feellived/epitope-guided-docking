@@ -21,7 +21,7 @@ sabdab2_summary.csv (SAbDab2 전체, date=진짜 구조일)
 ## 실행 (서버, boltz 또는 DockQ env = biopython 필요)
 
 ```bash
-cd ~/projects/bk21-antibody-ml/pipeline/dataset
+cd ~/projects/epitope-guided-docking/pipeline/dataset
 conda activate boltz            # biopython 있는 env
 # summary 스냅샷이 없으면 최신 다운로드(라이브 DB):
 #   curl -sL https://sabdab.opig.stats.ox.ac.uk/api/download/all-summary -o sabdab2_summary.csv
